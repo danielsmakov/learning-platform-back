@@ -1,4 +1,5 @@
 using FluentValidation;
+using LearningPlatform.Application;
 
 namespace LearningPlatform.Application.Services;
 
@@ -9,8 +10,10 @@ public static class ValidationExtensions
         var result = await validator.ValidateAsync(model, ct);
         if (!result.IsValid)
         {
-            var errors = string.Join("; ", result.Errors.Select(e => e.ErrorMessage));
-            throw new InvalidOperationException(errors);
+            var dict = result.Errors
+                .GroupBy(e => string.IsNullOrEmpty(e.PropertyName) ? "_" : e.PropertyName)
+                .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+            throw new AppValidationException("Validation failed.", dict);
         }
     }
 }

@@ -16,7 +16,7 @@ public class ChildrenController(ParentChildService service, CurriculumMapService
         AuthGuard.RequireParentOrAdmin(User);
         if (!AuthGuard.IsAdmin(User) && AuthGuard.GetUserId(User) != parentId)
         {
-            throw new UnauthorizedAccessException("Forbidden.");
+            throw new AppForbiddenException("Forbidden.");
         }
 
         return Ok(await service.GetParentChildren(parentId, query));

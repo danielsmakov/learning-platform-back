@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using LearningPlatform.Application;
 using LearningPlatform.Infrastructure.Repositories;
 
 namespace LearningPlatform.Application.Services;
@@ -36,7 +37,7 @@ public class CatalogProgramResolver(IChildRepository childRepository)
             {
                 var parentId = AuthGuard.GetUserId(user);
                 if (!await childRepository.IsOwner(parentId, childId.Value))
-                    throw new UnauthorizedAccessException("You do not have access to this child.");
+                    throw new AppForbiddenException("You do not have access to this child.");
                 var child = await childRepository.GetById(childId.Value) ?? throw new KeyNotFoundException("Child not found.");
                 return child.CurrentProgramId;
             }
