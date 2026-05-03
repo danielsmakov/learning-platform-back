@@ -5,7 +5,7 @@ namespace LearningPlatform.Application.Services;
 
 /// <summary>
 /// H3: только роль Parent и валидный JWT; группа SignalR = <c>parentId</c> (для push уведомлений).
-/// Клиент: при negotiate/WebSocket передать токен в query <c>access_token</c> или заголовок <c>Authorization: Bearer</c> (см. JwtBearer OnMessageReceived в Program.cs).
+/// Клиент: G5 — negotiate (HTTP) затем WebSocket; токен в query <c>access_token</c> или <c>Authorization: Bearer</c> (см. Program.cs и README.md).
 /// Событие входящих сообщений: <see cref="ParentNotificationPublisher.HubEventName"/> (<c>notification</c>); контракт SignalR — в тексте OpenAPI (Swagger) API v1.
 /// </summary>
 [Authorize(Roles = "Parent")]

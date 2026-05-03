@@ -30,8 +30,9 @@ builder.Services.AddSwaggerGen(c =>
             "List responses use pagination fields `items`, `total`, `page`, `page_size`, `total_pages`. " +
             "**Accept-Language (G2):** optional on catalog GETs and curriculum-map; send `ru`, `en`, or tags like `ru-RU;q=0.9,en;q=0.8` — first tag wins (`ru*` → Russian, else English). " +
             "**Errors (A6):** JSON `{ \"message\", \"details\" }` — 401 not authenticated, 403 forbidden, 422 validation (`details.errors` field map), 400/404/500 as applicable. " +
-            "**SignalR (G4, not REST):** hub path `/hubs/parent-notifications`; role **Parent**; JWT via query `access_token` or header `Authorization: Bearer` (same as REST). " +
-            "Server event name `notification` (see `ParentNotificationPublisher.HubEventName`); payload shape: `id` (uuid), `type` (NotificationType enum int), `title`, `body`, `childId` (uuid|null), `createdAt` (ISO 8601), `isRead` (bool) — same as `ParentNotificationPublisher.ParentNotificationPayload`."
+            "**SignalR (G4, not REST):** hub `/hubs/parent-notifications`; role **Parent**; JWT: query `access_token` (SPA) or `Authorization: Bearer` (G5 negotiate → WebSocket; see README). " +
+            "Do not log full negotiate URLs containing tokens. " +
+            "Server event `notification` (`ParentNotificationPublisher.HubEventName`); payload: `id`, `type` (NotificationType int), `title`, `body`, `childId`, `createdAt`, `isRead` — matches `ParentNotificationPayload`. Details: README.md."
     });
 });
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();

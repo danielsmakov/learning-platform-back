@@ -22,7 +22,7 @@ public class ParentNotificationPublisher(IHubContext<ParentNotificationHub> hubC
     public Task PublishSavedAsync(Notification notification) =>
         hubContext.Clients.Group(notification.ParentId.ToString("D")).SendAsync(HubEventName, ParentNotificationPayload.From(notification));
 
-    /// <summary>Согласованный с БД payload для клиента (типы = <see cref="NotificationType"/>).</summary>
+    /// <summary>G4: тот же контракт, что строка в БД; поле <c>type</c> = int из <see cref="NotificationType"/>.</summary>
     public sealed record ParentNotificationPayload(Guid Id, NotificationType Type, string Title, string Body, Guid? ChildId, DateTime CreatedAt, bool IsRead)
     {
         public static ParentNotificationPayload From(Notification n) =>
