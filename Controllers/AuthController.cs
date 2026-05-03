@@ -2,10 +2,12 @@ using LearningPlatform.Application;
 using LearningPlatform.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace LearningPlatform.Controllers;
 
 [ApiController]
+[EnableRateLimiting("auth")]
 [Route("api/v1/auth")]
 public class AuthController(AuthService authService) : ControllerBase
 {

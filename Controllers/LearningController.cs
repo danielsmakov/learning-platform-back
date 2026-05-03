@@ -3,6 +3,7 @@ using LearningPlatform.Application;
 using LearningPlatform.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace LearningPlatform.Controllers;
 
@@ -17,6 +18,7 @@ public class LearningController(
     ParentChildService childService,
     IBackgroundJobClient jobs) : ControllerBase
 {
+    [EnableRateLimiting("submit")]
     [HttpPost("exercises/{id:guid}/submit")]
     public async Task<IActionResult> SubmitExercise(Guid id, [FromBody] SubmitExerciseRequest request)
     {
