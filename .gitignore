@@ -1,0 +1,33 @@
+# Environment and secrets
+.env
+
+# Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.log
+
+# Visual Studio / VS Code / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
+
+# Publish
+publish/
+out/
