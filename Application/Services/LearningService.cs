@@ -30,23 +30,11 @@ public class LearningService(
             throw new InvalidOperationException("This lesson has no exercises.");
 
         if (await learningRepository.AllLessonExercisesHaveCorrectAnswerAsync(child.Id, lessonId))
-        {
-            var (_, unitDone, signal) = await TryFinalizeLessonIfNeeded(child, lessonId);
-            await unitOfWork.SaveChanges();
-            await PublishNotificationsAsync(signal);
-            EnqueueUnitCompletionFollowUp(child.Id, exercise.Lesson.UnitId, unitDone);
-            throw new InvalidOperationException("Lesson already completed.");
-        }
+            return await RespondLessonAlreadyFullySolvedAsync(child, lessonId, exercise.Lesson.UnitId);
 
         var nextRequired = await GetNextExerciseIdRequiringFirstCorrect(child.Id, lessonId);
         if (nextRequired is null)
-        {
-            var (_, unitDone, signal) = await TryFinalizeLessonIfNeeded(child, lessonId);
-            await unitOfWork.SaveChanges();
-            await PublishNotificationsAsync(signal);
-            EnqueueUnitCompletionFollowUp(child.Id, exercise.Lesson.UnitId, unitDone);
-            throw new InvalidOperationException("Lesson already completed.");
-        }
+            return await RespondLessonAlreadyFullySolvedAsync(child, lessonId, exercise.Lesson.UnitId);
 
         if (exerciseId != nextRequired.Value)
             throw new InvalidOperationException("Complete the current exercise in order before moving on.");
@@ -129,6 +117,21 @@ public class LearningService(
 
         child = await childRepository.GetById(childId) ?? throw new KeyNotFoundException("Child not found.");
         return new { ChildId = childId, child!.XpTotal, child.CurrentLevel, child.StreakCurrent };
+    }
+
+    /// <summary>
+    /// Повторный submit / Postman Runner после <see cref="BuildLessonResume"/>: урок уже с верными ответами —
+    /// 200 и последний результат вместо 400 «Lesson already completed».
+    /// </summary>
+    private async Task<ExerciseSubmitResponse> RespondLessonAlreadyFullySolvedAsync(Child child, Guid lessonId, Guid unitId)
+    {
+        var (lessonFinalized, unitDone, signal) = await TryFinalizeLessonIfNeeded(child, lessonId);
+        await unitOfWork.SaveChanges();
+        await PublishNotificationsAsync(signal);
+        EnqueueUnitCompletionFollowUp(child.Id, unitId, unitDone);
+        var last = await learningRepository.GetLatestExerciseResultForLessonAsync(child.Id, lessonId)
+                   ?? throw new InvalidOperationException("Lesson already completed.");
+        return new ExerciseSubmitResponse(last.Id, last.IsCorrect, last.TimeTakenMs, last.SubmittedAt, lessonFinalized);
     }
 
     private async Task<LessonResumeResponse> BuildLessonResume(Guid childId, Guid lessonId)

@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi;
+using System.Text.Json.Serialization;
 
 EnvBootstrap.LoadLocalEnvFile();
 var builder = WebApplication.CreateBuilder(args);
@@ -37,13 +38,34 @@ builder.Services.AddSwaggerGen(c =>
             "Do not log full negotiate URLs containing tokens. " +
             "Server event `notification` (`ParentNotificationPublisher.HubEventName`); payload: `id`, `type` (NotificationType int), `title`, `body`, `childId`, `createdAt`, `isRead` — matches `ParentNotificationPayload`. Details: README.md."
     });
+
+    const string jwtSchemeId = "bearer";
+    c.AddSecurityDefinition(jwtSchemeId, new OpenApiSecurityScheme
+    {
+        Description =
+            "JWT: `POST /api/v1/auth/login` → поле `accessToken`. Вставьте только токен (без слова Bearer) — Swagger UI добавит схему HTTP Bearer.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference(jwtSchemeId, document)] = []
+    });
 });
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 builder.Services.AddScoped<ValidationActionFilter>();
 builder.Services.AddControllers(options =>
-{
-    options.Filters.AddService<ValidationActionFilter>();
-});
+    {
+        options.Filters.AddService<ValidationActionFilter>();
+    })
+    .AddJsonOptions(o =>
+    {
+        // EF Include(Lesson→Unit) + fixup заполняет Unit.Lessons → цикл при сериализации (GET /lessons, /exercises).
+        o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendCors", policy =>
@@ -192,7 +214,12 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "LearningPlatform API v1");
 });
 
-app.UseHttpsRedirection();
+// Редирект только если задан HTTPS-порт (launchSettings / Kestrel). Иначе WARN «Failed to determine the https port»
+// и сбои клиентов на http:// (Postman). За TLS на проде часто отвечает reverse proxy — редирект там, не здесь.
+var httpsPorts = Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS");
+if (!string.IsNullOrEmpty(httpsPorts))
+    app.UseHttpsRedirection();
+
 app.UseCors("FrontendCors");
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseAuthentication();
