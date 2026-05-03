@@ -58,6 +58,10 @@ public class UpdateChildRequestValidator : AbstractValidator<UpdateChildRequest>
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
         RuleFor(x => x.DisplayName).NotEmpty().MaximumLength(64);
         RuleFor(x => x.Age).InclusiveBetween(3, 14);
+        When(x => x.LearningProgramTrack.HasValue, () =>
+        {
+            RuleFor(x => x.LearningProgramTrack!.Value).IsInEnum();
+        });
     }
 }
 

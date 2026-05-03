@@ -32,7 +32,8 @@ public class UserRepository(AppDbContext db) : IUserRepository
 
 public class ChildRepository(AppDbContext db) : IChildRepository
 {
-    public Task<Child?> GetById(Guid id) => db.Children.FirstOrDefaultAsync(x => x.Id == id);
+    public Task<Child?> GetById(Guid id) =>
+        db.Children.Include(x => x.CurrentProgram).FirstOrDefaultAsync(x => x.Id == id);
     public Task Add(Child child) => db.Children.AddAsync(child).AsTask();
     public Task Delete(Child child)
     {
@@ -41,7 +42,8 @@ public class ChildRepository(AppDbContext db) : IChildRepository
     }
 
     public Task<bool> IsOwner(Guid parentId, Guid childId) => db.Children.AnyAsync(x => x.Id == childId && x.ParentId == parentId);
-    public Task<PagedResponse<Child>> GetByParent(Guid parentId, QueryOptions query) => db.Children.Where(x => x.ParentId == parentId).OrderBy(x => x.Name).ToPagedResponse(query);
+    public Task<PagedResponse<Child>> GetByParent(Guid parentId, QueryOptions query) =>
+        db.Children.Include(x => x.CurrentProgram).Where(x => x.ParentId == parentId).OrderBy(x => x.Name).ToPagedResponse(query);
     public Task<int> CountAll() => db.Children.CountAsync();
     public Task<List<Guid>> DistinctParentIds() => db.Children.Select(x => x.ParentId).Distinct().ToListAsync();
     public Task<List<Child>> GetNotActiveToday(DateOnly today) => db.Children.Where(c => c.LastActivityDate != today).ToListAsync();
