@@ -11,6 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Unit> Units => Set<Unit>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
     public DbSet<Exercise> Exercises => Set<Exercise>();
+    public DbSet<ContentTranslation> ContentTranslations => Set<ContentTranslation>();
     public DbSet<ChildLessonProgress> ChildLessonProgresses => Set<ChildLessonProgress>();
     public DbSet<ChildUnitProgress> ChildUnitProgresses => Set<ChildUnitProgress>();
     public DbSet<ExerciseResult> ExerciseResults => Set<ExerciseResult>();
@@ -44,5 +45,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<ActivityLog>().HasIndex(x => x.CreatedAt);
         modelBuilder.Entity<RefreshToken>().HasIndex(x => x.UserId);
         modelBuilder.Entity<Badge>().HasIndex(x => x.Key).IsUnique();
+        modelBuilder.Entity<ContentTranslation>().HasIndex(x => new { x.EntityType, x.EntityId, x.FieldName, x.Locale }).IsUnique();
     }
 }

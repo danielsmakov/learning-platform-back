@@ -74,6 +74,13 @@ public interface ILearningRepository
     Task<int> CountCompletedLessons(Guid childId);
     Task<int> CountCompletedLessonsAll();
     Task<int> CountProgressRows();
+    /// <summary>Прогресс по списку уроков (для карты куррикулума).</summary>
+    Task<Dictionary<Guid, ChildLessonProgress>> GetLessonProgressMapAsync(Guid childId, IReadOnlyCollection<Guid> lessonIds);
+}
+
+public interface IContentTranslationRepository
+{
+    Task<List<ContentTranslation>> ListAsync(string entityType, IReadOnlyCollection<Guid> entityIds);
 }
 
 public interface IBadgeRepository

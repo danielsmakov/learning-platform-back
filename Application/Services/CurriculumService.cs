@@ -4,10 +4,19 @@ using LearningPlatform.Infrastructure.Repositories;
 
 namespace LearningPlatform.Application.Services;
 
-public class CurriculumService(ICurriculumRepository curriculumRepository, IActivityLogRepository activityLogRepository, IUnitOfWork unitOfWork)
+public class CurriculumService(
+    ICurriculumRepository curriculumRepository,
+    IActivityLogRepository activityLogRepository,
+    IUnitOfWork unitOfWork,
+    IContentLocalizationService localization)
 {
-    public Task<PagedResponse<LearningProgram>> GetPrograms(QueryOptions query, bool includeUnpublished) =>
-        curriculumRepository.GetPrograms(query, includeUnpublished);
+    public async Task<PagedResponse<LearningProgram>> GetPrograms(QueryOptions query, bool includeUnpublished, string? acceptLanguage = null)
+    {
+        var page = await curriculumRepository.GetPrograms(query, includeUnpublished);
+        if (!string.IsNullOrWhiteSpace(acceptLanguage))
+            await localization.ApplyProgramsAsync(page.Items.ToList(), LocalePreference.Parse(acceptLanguage));
+        return page;
+    }
 
     public async Task<LearningProgram> CreateProgram(CreateLearningProgramRequest request, Guid adminId)
     {
@@ -51,8 +60,13 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         await unitOfWork.SaveChanges();
     }
 
-    public Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query, bool includeUnpublished = false) =>
-        curriculumRepository.GetUnits(query, restrictToPublishedCatalog: !includeUnpublished);
+    public async Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query, bool includeUnpublished = false, string? acceptLanguage = null)
+    {
+        var page = await curriculumRepository.GetUnits(query, restrictToPublishedCatalog: !includeUnpublished);
+        if (!string.IsNullOrWhiteSpace(acceptLanguage))
+            await localization.ApplyUnitsAsync(page.Items.ToList(), LocalePreference.Parse(acceptLanguage));
+        return page;
+    }
 
     public async Task<Unit> CreateUnit(CreateUnitRequest request, Guid adminId, Guid programContextId)
     {
@@ -103,8 +117,13 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         await unitOfWork.SaveChanges();
     }
 
-    public Task<PagedResponse<Lesson>> GetLessons(LessonQueryOptions query, bool includeUnpublished = false) =>
-        curriculumRepository.GetLessons(query, restrictToPublishedCatalog: !includeUnpublished);
+    public async Task<PagedResponse<Lesson>> GetLessons(LessonQueryOptions query, bool includeUnpublished = false, string? acceptLanguage = null)
+    {
+        var page = await curriculumRepository.GetLessons(query, restrictToPublishedCatalog: !includeUnpublished);
+        if (!string.IsNullOrWhiteSpace(acceptLanguage))
+            await localization.ApplyLessonsAsync(page.Items.ToList(), LocalePreference.Parse(acceptLanguage));
+        return page;
+    }
 
     public async Task<Lesson> CreateLesson(CreateLessonRequest request, Guid adminId, Guid programContextId)
     {
@@ -153,8 +172,13 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         await unitOfWork.SaveChanges();
     }
 
-    public Task<PagedResponse<Exercise>> GetExercises(Guid lessonId, QueryOptions query, bool includeUnpublished = false) =>
-        curriculumRepository.GetExercises(lessonId, query, restrictToPublishedCatalog: !includeUnpublished);
+    public async Task<PagedResponse<Exercise>> GetExercises(Guid lessonId, QueryOptions query, bool includeUnpublished = false, string? acceptLanguage = null)
+    {
+        var page = await curriculumRepository.GetExercises(lessonId, query, restrictToPublishedCatalog: !includeUnpublished);
+        if (!string.IsNullOrWhiteSpace(acceptLanguage))
+            await localization.ApplyExercisesAsync(page.Items.ToList(), LocalePreference.Parse(acceptLanguage));
+        return page;
+    }
 
     public async Task EnsureLessonBelongsToProgram(Guid lessonId, Guid programId)
     {

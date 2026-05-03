@@ -62,7 +62,7 @@ public class CurriculumRepository(AppDbContext db) : ICurriculumRepository
 {
     public Task<PagedResponse<LearningProgram>> GetPrograms(QueryOptions query, bool includeUnpublished)
     {
-        var q = db.Programs.AsQueryable();
+        var q = db.Programs.AsNoTracking().AsQueryable();
         if (!includeUnpublished) q = q.Where(x => x.IsPublished);
         return q.OrderBy(x => x.DifficultyTrack).ToPagedResponse(query);
     }
@@ -84,7 +84,7 @@ public class CurriculumRepository(AppDbContext db) : ICurriculumRepository
 
     public Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query, bool restrictToPublishedCatalog = true)
     {
-        var q = db.Units.AsQueryable();
+        var q = db.Units.AsNoTracking().AsQueryable();
         if (query.ProgramId.HasValue) q = q.Where(x => x.ProgramId == query.ProgramId.Value);
         if (restrictToPublishedCatalog) q = q.Where(x => x.IsPublished);
         return q.OrderBy(x => x.OrderIndex).ToPagedResponse(query);
@@ -95,7 +95,7 @@ public class CurriculumRepository(AppDbContext db) : ICurriculumRepository
     public Task DeleteUnit(Unit unit) { db.Units.Remove(unit); return Task.CompletedTask; }
     public Task<PagedResponse<Lesson>> GetLessons(LessonQueryOptions query, bool restrictToPublishedCatalog = true)
     {
-        var q = db.Lessons.Include(x => x.Unit).AsQueryable();
+        var q = db.Lessons.AsNoTracking().Include(x => x.Unit).AsQueryable();
         if (query.ProgramId.HasValue) q = q.Where(x => x.Unit!.ProgramId == query.ProgramId.Value);
         if (query.UnitId.HasValue) q = q.Where(x => x.UnitId == query.UnitId.Value);
         if (query.LessonType.HasValue) q = q.Where(x => x.LessonType == query.LessonType.Value);
@@ -116,7 +116,7 @@ public class CurriculumRepository(AppDbContext db) : ICurriculumRepository
     public Task DeleteLesson(Lesson lesson) { db.Lessons.Remove(lesson); return Task.CompletedTask; }
     public Task<PagedResponse<Exercise>> GetExercises(Guid lessonId, QueryOptions query, bool restrictToPublishedCatalog = true)
     {
-        var q = db.Exercises
+        var q = db.Exercises.AsNoTracking()
             .Include(x => x.Lesson)
             .ThenInclude(l => l!.Unit)
             .Where(x => x.LessonId == lessonId);
@@ -201,6 +201,28 @@ public class LearningRepository(AppDbContext db) : ILearningRepository
     public Task<int> CountCompletedLessons(Guid childId) => db.ChildLessonProgresses.CountAsync(x => x.ChildId == childId && x.Status == LessonProgressStatus.Completed);
     public Task<int> CountCompletedLessonsAll() => db.ChildLessonProgresses.CountAsync(x => x.Status == LessonProgressStatus.Completed);
     public Task<int> CountProgressRows() => db.ChildLessonProgresses.CountAsync();
+
+    public async Task<Dictionary<Guid, ChildLessonProgress>> GetLessonProgressMapAsync(Guid childId, IReadOnlyCollection<Guid> lessonIds)
+    {
+        if (lessonIds.Count == 0)
+            return new Dictionary<Guid, ChildLessonProgress>();
+        return await db.ChildLessonProgresses.AsNoTracking()
+            .Where(x => x.ChildId == childId && lessonIds.Contains(x.LessonId))
+            .ToDictionaryAsync(x => x.LessonId);
+    }
+}
+
+public class ContentTranslationRepository(AppDbContext db) : IContentTranslationRepository
+{
+    public Task<List<ContentTranslation>> ListAsync(string entityType, IReadOnlyCollection<Guid> entityIds)
+    {
+        if (entityIds.Count == 0)
+            return Task.FromResult(new List<ContentTranslation>());
+
+        return db.ContentTranslations.AsNoTracking()
+            .Where(x => x.EntityType == entityType && entityIds.Contains(x.EntityId))
+            .ToListAsync();
+    }
 }
 
 public class BadgeRepository(AppDbContext db) : IBadgeRepository

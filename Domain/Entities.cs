@@ -88,6 +88,18 @@ public class Exercise
     [MaxLength(5000)] public string Content { get; set; } = string.Empty;
 }
 
+/// <summary>B6: нормализованные переводы полей контента (ru/en).</summary>
+public class ContentTranslation
+{
+    [Key] public Guid Id { get; set; } = Guid.NewGuid();
+    [MaxLength(64)] public string EntityType { get; set; } = string.Empty;
+    public Guid EntityId { get; set; }
+    [MaxLength(64)] public string FieldName { get; set; } = string.Empty;
+    /// <summary>Код языка: en, ru.</summary>
+    [MaxLength(16)] public string Locale { get; set; } = string.Empty;
+    [MaxLength(2000)] public string Value { get; set; } = string.Empty;
+}
+
 public class ChildLessonProgress
 {
     [Key] public Guid Id { get; set; } = Guid.NewGuid();

@@ -12,12 +12,13 @@ public class CurriculumController(CurriculumService service, CatalogProgramResol
     /// <summary>Список юнитов каталога. <paramref name="all"/> — включить черновики; только Admin.</summary>
     [AllowAnonymous]
     [HttpGet("units")]
-    public async Task<IActionResult> ListUnits([FromQuery] UnitQueryOptions query, [FromQuery] bool all = false)
+    public async Task<IActionResult> ListUnits([FromQuery] UnitQueryOptions query, [FromQuery] bool all = false,
+        [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
     {
         if (all) AuthGuard.RequireAdmin(User);
         var programId = await catalogResolver.ResolveCatalogProgramIdAsync(User, query.ProgramId, query.ChildId);
         query.ProgramId = programId;
-        return Ok(await service.GetUnits(query, includeUnpublished: all));
+        return Ok(await service.GetUnits(query, includeUnpublished: all, acceptLanguage: acceptLanguage));
     }
 
     [Authorize]
@@ -48,12 +49,13 @@ public class CurriculumController(CurriculumService service, CatalogProgramResol
     /// <summary>Список уроков каталога. <paramref name="all"/> — включить черновики; только Admin.</summary>
     [AllowAnonymous]
     [HttpGet("lessons")]
-    public async Task<IActionResult> ListLessons([FromQuery] LessonQueryOptions query, [FromQuery] bool all = false)
+    public async Task<IActionResult> ListLessons([FromQuery] LessonQueryOptions query, [FromQuery] bool all = false,
+        [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
     {
         if (all) AuthGuard.RequireAdmin(User);
         var programId = await catalogResolver.ResolveCatalogProgramIdAsync(User, query.ProgramId, query.ChildId);
         query.ProgramId = programId;
-        return Ok(await service.GetLessons(query, includeUnpublished: all));
+        return Ok(await service.GetLessons(query, includeUnpublished: all, acceptLanguage: acceptLanguage));
     }
 
     [Authorize]
@@ -84,13 +86,14 @@ public class CurriculumController(CurriculumService service, CatalogProgramResol
     /// <summary>Упражнения урока. <paramref name="all"/> — включить черновики урока/юнита; только Admin.</summary>
     [AllowAnonymous]
     [HttpGet("lessons/{id:guid}/exercises")]
-    public async Task<IActionResult> ListExercises(Guid id, [FromQuery] QueryOptions query, [FromQuery] Guid? programId, [FromQuery] Guid? childId, [FromQuery] bool all = false)
+    public async Task<IActionResult> ListExercises(Guid id, [FromQuery] QueryOptions query, [FromQuery] Guid? programId, [FromQuery] Guid? childId, [FromQuery] bool all = false,
+        [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
     {
         if (all) AuthGuard.RequireAdmin(User);
         var resolved = await catalogResolver.ResolveCatalogProgramIdAsync(User, programId, childId);
         await service.EnsureLessonBelongsToProgram(id, resolved);
         await service.EnsureLessonPublishedForCatalog(id, includeUnpublished: all);
-        return Ok(await service.GetExercises(id, query, includeUnpublished: all));
+        return Ok(await service.GetExercises(id, query, includeUnpublished: all, acceptLanguage: acceptLanguage));
     }
 
     [Authorize]
