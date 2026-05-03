@@ -3,7 +3,15 @@ using LearningPlatform.Infrastructure.Repositories;
 
 namespace LearningPlatform.Application.Services;
 
-/// <summary>Определяет ProgramId для выдачи каталога (D4): админ — явный programId; ребёнок — своя программа; родитель — childId или programId; аноним — programId.</summary>
+/// <summary>
+/// Определяет ProgramId для выдачи каталога (D4/H3):
+/// <list type="bullet">
+/// <item><description><b>Admin</b> — только явный <c>programId</c> (через query).</description></item>
+/// <item><description><b>Child</b> — всегда <see cref="Child.CurrentProgramId"/> из профиля; параметры programId/childId из запроса не подменяют дорожку.</description></item>
+/// <item><description><b>Parent</b> — либо каталог по <c>childId</c> (ребёнок должен принадлежать родителю), либо явный <c>programId</c>.</description></item>
+/// <item><description><b>Anonymous</b> — только явный <c>programId</c>.</description></item>
+/// </list>
+/// </summary>
 public class CatalogProgramResolver(IChildRepository childRepository)
 {
     public async Task<Guid> ResolveCatalogProgramIdAsync(ClaimsPrincipal user, Guid? programId, Guid? childId)

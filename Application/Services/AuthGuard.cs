@@ -17,6 +17,19 @@ public static class AuthGuard
 
     public static bool IsAdmin(ClaimsPrincipal user) => user.IsInRole("Admin");
     public static bool IsChild(ClaimsPrincipal user) => user.IsInRole("Child");
+    public static bool IsParent(ClaimsPrincipal user) => user.IsInRole("Parent");
+
+    /// <summary>H3: endpoints только для родителя (не Child, не аноним).</summary>
+    public static void RequireParent(ClaimsPrincipal user)
+    {
+        if (!IsParent(user)) throw new UnauthorizedAccessException("Parent role required.");
+    }
+
+    /// <summary>H3: явный запрет JWT ребёнка (админка, родительские данные и т.д.).</summary>
+    public static void RequireNotChild(ClaimsPrincipal user)
+    {
+        if (IsChild(user)) throw new UnauthorizedAccessException("Child accounts cannot access this resource.");
+    }
 
     public static void RequireAdmin(ClaimsPrincipal user)
     {

@@ -14,19 +14,13 @@ public class StatsController(ParentChildService parentChildService, AdminService
     public async Task<IActionResult> Leaderboard([FromQuery] LeaderboardQueryOptions query)
         => Ok(await parentChildService.GetLeaderboard(query));
 
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [HttpGet("admin/logs")]
     public async Task<IActionResult> AdminLogs([FromQuery] QueryOptions query)
-    {
-        AuthGuard.RequireAdmin(User);
-        return Ok(await adminService.GetLogs(query));
-    }
+        => Ok(await adminService.GetLogs(query));
 
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [HttpGet("admin/stats")]
     public async Task<IActionResult> AdminStats()
-    {
-        AuthGuard.RequireAdmin(User);
-        return Ok(await adminService.GetStats());
-    }
+        => Ok(await adminService.GetStats());
 }

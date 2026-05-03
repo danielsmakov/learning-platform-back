@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace LearningPlatform.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "Parent,Admin")]
 [Route("api/v1/parents")]
 public class ParentsController(ParentChildService service) : ControllerBase
 {
