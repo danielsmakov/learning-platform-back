@@ -31,7 +31,8 @@ public class ChildrenController(ParentChildService service) : ControllerBase
             request = request with { ParentId = AuthGuard.GetUserId(User) };
         }
 
-        var child = await service.CreateChild(request);
+        var adminActor = AuthGuard.IsAdmin(User) ? AuthGuard.GetUserId(User) : (Guid?)null;
+        var child = await service.CreateChild(request, adminActor);
         return Created($"/api/v1/children/{child.Id}", child);
     }
 
@@ -46,14 +47,16 @@ public class ChildrenController(ParentChildService service) : ControllerBase
     public async Task<IActionResult> UpdateChild(Guid id, [FromBody] UpdateChildRequest request)
     {
         await AuthGuard.RequireChildAccess(User, service, id);
-        return Ok(await service.UpdateChild(id, request));
+        var adminActor = AuthGuard.IsAdmin(User) ? AuthGuard.GetUserId(User) : (Guid?)null;
+        return Ok(await service.UpdateChild(id, request, adminActor));
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteChild(Guid id)
     {
         await AuthGuard.RequireChildAccess(User, service, id);
-        await service.DeleteChild(id);
+        var adminActor = AuthGuard.IsAdmin(User) ? AuthGuard.GetUserId(User) : (Guid?)null;
+        await service.DeleteChild(id, adminActor);
         return NoContent();
     }
 

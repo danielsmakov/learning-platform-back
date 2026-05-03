@@ -10,6 +10,7 @@ public class ParentChildService(
     ICurriculumRepository curriculumRepository,
     ILearningRepository learningRepository,
     IBadgeRepository badgeRepository,
+    IActivityLogRepository activityLogRepository,
     IUnitOfWork unitOfWork)
 {
     public async Task<User> GetParent(Guid id) => await userRepository.GetById(id) ?? throw new KeyNotFoundException("Parent not found.");
@@ -35,7 +36,7 @@ public class ParentChildService(
         };
     }
 
-    public async Task<ChildResponse> CreateChild(CreateChildRequest request)
+    public async Task<ChildResponse> CreateChild(CreateChildRequest request, Guid? adminActorId = null)
     {
         var program = await curriculumRepository.GetProgramByTrack(request.LearningProgramTrack)
             ?? throw new KeyNotFoundException("Program for selected level not found.");
@@ -50,6 +51,8 @@ public class ParentChildService(
             CurrentProgramId = program.Id
         };
         await childRepository.Add(child);
+        if (adminActorId.HasValue)
+            await LogAdminWrite(adminActorId.Value, "create", "child", child.Id.ToString());
         await unitOfWork.SaveChanges();
         var loaded = await childRepository.GetById(child.Id) ?? throw new InvalidOperationException("Child not found after create.");
         return ToResponse(loaded);
@@ -61,7 +64,7 @@ public class ParentChildService(
         return ToResponse(child);
     }
 
-    public async Task<ChildResponse> UpdateChild(Guid id, UpdateChildRequest request)
+    public async Task<ChildResponse> UpdateChild(Guid id, UpdateChildRequest request, Guid? adminActorId = null)
     {
         var child = await childRepository.GetById(id) ?? throw new KeyNotFoundException("Child not found.");
         child.Name = request.Name;
@@ -75,6 +78,8 @@ public class ParentChildService(
             child.CurrentProgramId = program.Id;
         }
 
+        if (adminActorId.HasValue)
+            await LogAdminWrite(adminActorId.Value, "update", "child", id.ToString());
         await unitOfWork.SaveChanges();
         var reloaded = await childRepository.GetById(id) ?? throw new KeyNotFoundException("Child not found.");
         return ToResponse(reloaded);
@@ -101,12 +106,23 @@ public class ParentChildService(
             child.CurrentProgram.DifficultyTrack);
     }
 
-    public async Task DeleteChild(Guid id)
+    public async Task DeleteChild(Guid id, Guid? adminActorId = null)
     {
         var child = await childRepository.GetById(id) ?? throw new KeyNotFoundException("Child not found.");
+        if (adminActorId.HasValue)
+            await LogAdminWrite(adminActorId.Value, "delete", "child", id.ToString());
         await childRepository.Delete(child);
         await unitOfWork.SaveChanges();
     }
+
+    private Task LogAdminWrite(Guid adminId, string action, string resourceType, string resourceId) =>
+        activityLogRepository.Add(new ActivityLog
+        {
+            AdminId = adminId,
+            Action = action,
+            ResourceType = resourceType,
+            ResourceId = resourceId
+        });
 
     public async Task<bool> IsOwner(Guid parentId, Guid childId)
     {
