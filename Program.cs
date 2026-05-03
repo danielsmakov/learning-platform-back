@@ -44,8 +44,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = JwtTokenService.GetValidationParameters(config);
+        // H3 / G4: браузерный SignalR — JWT в query `access_token` (см. README фронта).
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var path = context.HttpContext.Request.Path;
+                if (path.StartsWithSegments("/hubs") && !string.IsNullOrEmpty(context.Request.Query["access_token"]))
+                    context.Token = context.Request.Query["access_token"];
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddSignalR();
 
 builder.Services.AddHangfire(h =>
 {
@@ -91,6 +103,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ParentNotificationHub>("/hubs/parent-notifications");
 
 using (var scope = app.Services.CreateScope())
 {
