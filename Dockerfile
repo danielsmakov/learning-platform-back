@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.6
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY learning-platform-back.csproj .
@@ -27,5 +27,21 @@ ENV ASPNETCORE_URLS=http://+:8080
 COPY --from=build /app/publish .
 COPY --from=bundle /bundle/migrate ./migrate
 RUN chmod +x migrate
-# $$ → $ при сборке. Без pipefail после printenv sed мог вернуть 0 при пустом printenv — в migrate уходила пустая строка.
-ENTRYPOINT ["/bin/sh", "-c", "set -eu; _raw=$(printenv ConnectionStrings__DefaultConnection || true); test -n \"$$_raw\" || { echo ConnectionStrings__DefaultConnection required >&2; exit 1; }; cs=$(printf '%s' \"$$_raw\" | tr -d '\\r'); cs=$(printf '%s' \"$$cs\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); /app/migrate --connection \"$$cs\"; exec dotnet /app/learning-platform-back.dll"]
+RUN <<'SCRIPT'
+cat > /app/entrypoint.sh <<'EOS'
+#!/bin/sh
+set -eu
+raw=$(printenv ConnectionStrings__DefaultConnection || true)
+test -n "$raw" || { echo "ConnectionStrings__DefaultConnection is unset or empty" >&2; exit 1; }
+cs=$(printf '%s' "$raw" | tr -d '\r')
+cs=$(printf '%s' "$cs" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+cs=${cs#\"}
+cs=${cs%\"}
+test -n "$cs" || { echo "connection string empty after trim/strip quotes" >&2; exit 1; }
+echo "Applying migrations (connection string length ${#cs})" >&2
+/app/migrate --connection "$cs"
+exec dotnet /app/learning-platform-back.dll
+EOS
+chmod +x /app/entrypoint.sh
+SCRIPT
+ENTRYPOINT ["/app/entrypoint.sh"]
