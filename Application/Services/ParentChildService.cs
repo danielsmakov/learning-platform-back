@@ -11,7 +11,8 @@ public class ParentChildService(
     ILearningRepository learningRepository,
     IBadgeRepository badgeRepository,
     IActivityLogRepository activityLogRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    CurrentUnitProgressService currentUnitProgress)
 {
     public async Task<User> GetParent(Guid id) => await userRepository.GetById(id) ?? throw new KeyNotFoundException("Parent not found.");
 
@@ -93,7 +94,7 @@ public class ParentChildService(
         if (child.CurrentProgram is null)
             throw new InvalidOperationException("Child.CurrentProgram must be loaded.");
 
-        var (percent, currentUnitId) = await ComputeCurrentUnitProgressAsync(child);
+        var (percent, currentUnitId) = await currentUnitProgress.ComputeAsync(child.Id, child.CurrentProgramId);
 
         return new ChildResponse(
             child.Id,
@@ -112,33 +113,6 @@ public class ParentChildService(
             child.CurrentProgram.DifficultyTrack,
             percent,
             currentUnitId);
-    }
-
-    private async Task<(int Percent, Guid? CurrentUnitId)> ComputeCurrentUnitProgressAsync(Child child)
-    {
-        var unitsPage = await curriculumRepository.GetUnits(
-            new UnitQueryOptions { ProgramId = child.CurrentProgramId, Page = 1, PageSize = 500 },
-            restrictToPublishedCatalog: true);
-        var units = unitsPage.Items.OrderBy(u => u.OrderIndex).ToList();
-
-        Guid? lastUnitWithLessons = null;
-        foreach (var unit in units)
-        {
-            var total = await curriculumRepository.CountPublishedLessonsInUnit(unit.Id);
-            if (total == 0) continue;
-            lastUnitWithLessons = unit.Id;
-            var completed = await learningRepository.CountCompletedPublishedLessonsInUnitAsync(child.Id, unit.Id);
-            if (completed < total)
-            {
-                var percent = (int)Math.Round(100.0 * completed / total);
-                return (percent, unit.Id);
-            }
-        }
-
-        if (lastUnitWithLessons.HasValue)
-            return (100, lastUnitWithLessons);
-
-        return (0, null);
     }
 
     public async Task DeleteChild(Guid id, Guid? adminActorId = null)

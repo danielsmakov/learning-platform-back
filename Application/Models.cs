@@ -98,13 +98,18 @@ public class LeaderboardQueryOptions : QueryOptions
     public int MaxAge { get; set; } = 12;
 }
 
-/// <summary>B1: карта куррикулума ребёнка в текущей программе.</summary>
+/// <summary>
+/// B1 / G1: карта куррикулума ребёнка в текущей программе.
+/// <para><see cref="CurrentUnitProgressPercent"/> и <see cref="CurrentUnitId"/> — та же метрика и формула, что в <see cref="ChildResponse"/>.</para>
+/// </summary>
 public record CurriculumMapResponse(
     Guid ChildId,
     Guid ProgramId,
     ProgramDifficultyTrack LearningProgramTrack,
     string ProgramTitle,
     string ProgramDescription,
+    int CurrentUnitProgressPercent,
+    Guid? CurrentUnitId,
     IReadOnlyList<CurriculumMapUnitDto> Units,
     CurriculumMapNextDto Next);
 

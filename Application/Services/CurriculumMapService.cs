@@ -9,7 +9,8 @@ public class CurriculumMapService(
     IChildRepository childRepository,
     ICurriculumRepository curriculumRepository,
     ILearningRepository learningRepository,
-    IContentLocalizationService localization)
+    IContentLocalizationService localization,
+    CurrentUnitProgressService currentUnitProgress)
 {
     public async Task<CurriculumMapResponse> GetMapAsync(Guid childId, string locale)
     {
@@ -80,12 +81,17 @@ public class CurriculumMapService(
             }
         }
 
+        var (progressPercent, currentUnitId) =
+            await currentUnitProgress.ComputeAsync(child.Id, child.CurrentProgramId);
+
         return new CurriculumMapResponse(
             child.Id,
             program.Id,
             program.DifficultyTrack,
             programTitle,
             programDescription,
+            progressPercent,
+            currentUnitId,
             unitDtos,
             new CurriculumMapNextDto(nextSummary, nextLessonId, nextUnitId));
     }

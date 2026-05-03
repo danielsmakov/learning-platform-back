@@ -94,6 +94,7 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<CurrentUnitProgressService>();
 builder.Services.AddScoped<ParentChildService>();
 builder.Services.AddScoped<CatalogProgramResolver>();
 builder.Services.AddScoped<CurriculumService>();
