@@ -74,7 +74,7 @@ public class ChildrenController(ParentChildService service, CurriculumMapService
         return Ok(await service.GetChildBadges(id, query));
     }
 
-    /// <summary>B1: карта куррикулума ребёнка. G2: заголовок Accept-Language (ru/en) — см. OpenAPI и examples/catalog-client.http.</summary>
+    /// <summary>B1: карта куррикулума ребёнка. G2: заголовок Accept-Language (ru/en) — см. OpenAPI.</summary>
     [HttpGet("{id:guid}/curriculum-map")]
     public async Task<IActionResult> GetCurriculumMap(Guid id,
         [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)

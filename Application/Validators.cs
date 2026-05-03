@@ -129,6 +129,7 @@ public class CreateLessonRequestValidator : AbstractValidator<CreateLessonReques
     {
         RuleFor(x => x.UnitId).NotEmpty();
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Description).MaximumLength(2000);
         RuleFor(x => x.OrderIndex).GreaterThan(0);
         RuleFor(x => x.XpReward).InclusiveBetween(1, 200);
     }
@@ -139,6 +140,7 @@ public class UpdateLessonRequestValidator : AbstractValidator<UpdateLessonReques
     public UpdateLessonRequestValidator()
     {
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Description).MaximumLength(2000);
         RuleFor(x => x.OrderIndex).GreaterThan(0);
         RuleFor(x => x.XpReward).InclusiveBetween(1, 200);
     }

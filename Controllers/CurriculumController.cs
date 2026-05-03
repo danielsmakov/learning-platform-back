@@ -57,13 +57,14 @@ public class CurriculumController(CurriculumService service, CatalogProgramResol
         return NoContent();
     }
 
-    /// <summary>Список уроков каталога (G2: Accept-Language). <paramref name="all"/> — включить черновики; только Admin.</summary>
+    /// <summary>Список уроков каталога (G2: Accept-Language). <paramref name="all"/> — черновики; поле Search в query — только Admin (H2).</summary>
     [AllowAnonymous]
     [HttpGet("lessons")]
     public async Task<IActionResult> ListLessons([FromQuery] LessonQueryOptions query, [FromQuery] bool all = false,
         [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
     {
         if (all) AuthGuard.RequireAdmin(User);
+        if (!string.IsNullOrWhiteSpace(query.Search)) AuthGuard.RequireAdmin(User);
         var programId = await catalogResolver.ResolveCatalogProgramIdAsync(User, query.ProgramId, query.ChildId);
         query.ProgramId = programId;
         return Ok(await service.GetLessons(query, includeUnpublished: all, acceptLanguage: acceptLanguage));
