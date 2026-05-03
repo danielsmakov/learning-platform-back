@@ -29,6 +29,14 @@ public enum LessonProgressStatus
     Completed = 3
 }
 
+/// <summary>Прохождение юнита ребёнком (E1); не путать со справочником <see cref="Unit"/>.</summary>
+public enum UnitProgressStatus
+{
+    NotStarted = 1,
+    InProgress = 2,
+    Completed = 3
+}
+
 public enum NotificationType
 {
     Milestone = 1,
