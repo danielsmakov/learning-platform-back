@@ -21,11 +21,9 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
             .Build();
 
         var cs = configuration.GetConnectionString("DefaultConnection");
+        // Достаточно для scaffolding миграций (dotnet ef migrations add); реальный запуск приложения по-прежнему требует .env.
         if (string.IsNullOrWhiteSpace(cs))
-        {
-            throw new InvalidOperationException(
-                "Database connection string not found. Add ConnectionStrings__DefaultConnection to .env (see .env.example).");
-        }
+            cs = "Host=127.0.0.1;Port=5432;Database=ef_design_dummy;Username=dummy;Password=dummy";
 
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseNpgsql(cs)

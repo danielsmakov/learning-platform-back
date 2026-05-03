@@ -25,6 +25,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Child>().HasIndex(x => x.ParentId);
         modelBuilder.Entity<Child>().HasIndex(x => x.CurrentProgramId);
         modelBuilder.Entity<LearningProgram>().HasIndex(x => x.DifficultyTrack).IsUnique();
+        modelBuilder.Entity<LearningProgram>().HasIndex(x => x.IsDefault).IsUnique().HasFilter("\"IsDefault\" = TRUE");
         modelBuilder.Entity<Unit>().HasIndex(x => x.ProgramId);
         modelBuilder.Entity<Child>().HasOne(x => x.CurrentProgram).WithMany().HasForeignKey(x => x.CurrentProgramId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Unit>().HasOne(x => x.Program).WithMany(x => x.Units).HasForeignKey(x => x.ProgramId).OnDelete(DeleteBehavior.Restrict);
