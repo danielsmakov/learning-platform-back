@@ -23,7 +23,7 @@ public class AdaptiveDifficultyJob(
     public Task EvaluateCompletedUnitAsync(Guid childId, Guid unitId) =>
         EvaluateCoreAsync(childId, unitId);
 
-    /// <summary>Подбор необработанных завершённых юнитов (если фоновая задача не отработала сразу).</summary>
+    /// <summary>P3 / C3 + E4: по расписанию — дочитать завершённые юниты и пороги по <c>ErrorCount</c>.</summary>
     [AutomaticRetry(Attempts = 2)]
     public async Task ProcessScheduledCompletedUnitsAsync()
     {

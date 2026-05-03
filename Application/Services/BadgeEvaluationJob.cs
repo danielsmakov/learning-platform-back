@@ -86,7 +86,7 @@ public class BadgeEvaluationJob(
             await notificationPublisher.PublishSavedAsync(n);
     }
 
-    /// <summary>F1: периодическая переоценка для всех детей.</summary>
+    /// <summary>P3 / C3 + F1: по расписанию — переоценка бейджей по всем детям (условий станет больше по мере расширения сида «10–12»).</summary>
     public async Task EvaluateAllChildrenAsync()
     {
         foreach (var childId in await childRepository.GetAllChildIdsAsync())
