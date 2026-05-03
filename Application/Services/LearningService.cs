@@ -11,7 +11,7 @@ public class LearningService(
     INotificationRepository notificationRepository,
     IUnitOfWork unitOfWork)
 {
-    public async Task<object> SubmitExercise(Guid exerciseId, SubmitExerciseRequest request)
+    public async Task<ExerciseSubmitResponse> SubmitExercise(Guid exerciseId, SubmitExerciseRequest request)
     {
         var exercise = await curriculumRepository.GetExercise(exerciseId)
                        ?? throw new KeyNotFoundException("Exercise not found.");
@@ -20,7 +20,31 @@ public class LearningService(
         var child = await childRepository.GetById(request.ChildId) ?? throw new KeyNotFoundException("Child not found.");
 
         await EnsureChildLessonInChildProgram(child, exercise.LessonId);
-        await EnsureSequentialAccess(child.Id, exercise.LessonId);
+        await EnsurePreviousUnitsAllLessonsCompleted(child, exercise.LessonId);
+
+        var lessonId = exercise.LessonId;
+        if (await learningRepository.CountExercises(lessonId) == 0)
+            throw new InvalidOperationException("This lesson has no exercises.");
+
+        if (await learningRepository.AllLessonExercisesHaveCorrectAnswerAsync(child.Id, lessonId))
+        {
+            await TryFinalizeLessonIfNeeded(child, lessonId);
+            await unitOfWork.SaveChanges();
+            throw new InvalidOperationException("Lesson already completed.");
+        }
+
+        var nextRequired = await GetNextExerciseIdRequiringFirstCorrect(child.Id, lessonId);
+        if (nextRequired is null)
+        {
+            await TryFinalizeLessonIfNeeded(child, lessonId);
+            await unitOfWork.SaveChanges();
+            throw new InvalidOperationException("Lesson already completed.");
+        }
+
+        if (exerciseId != nextRequired.Value)
+            throw new InvalidOperationException("Complete the current exercise in order before moving on.");
+
+        var hadCorrectBefore = await learningRepository.HasCorrectAnswerAsync(request.ChildId, exerciseId);
 
         var result = new ExerciseResult
         {
@@ -31,21 +55,33 @@ public class LearningService(
         };
         await learningRepository.AddExerciseResult(result);
 
-        var progress = await learningRepository.GetProgress(request.ChildId, exercise.LessonId);
+        var progress = await learningRepository.GetProgress(request.ChildId, lessonId);
         if (progress is null)
         {
             progress = new ChildLessonProgress
             {
                 ChildId = request.ChildId,
-                LessonId = exercise.LessonId,
+                LessonId = lessonId,
                 Status = LessonProgressStatus.InProgress
             };
             await learningRepository.AddProgress(progress);
         }
 
+        if (request.IsCorrect && !hadCorrectBefore)
+            progress.LastCompletedExerciseId = exerciseId;
+
         await unitOfWork.SaveChanges();
-        return new { result.Id, result.IsCorrect, result.TimeTakenMs, result.SubmittedAt };
+
+        var lessonJustCompleted = false;
+        if (await learningRepository.AllLessonExercisesHaveCorrectAnswerAsync(child.Id, lessonId))
+            lessonJustCompleted = await TryFinalizeLessonIfNeeded(child, lessonId);
+
+        await unitOfWork.SaveChanges();
+
+        return new ExerciseSubmitResponse(result.Id, result.IsCorrect, result.TimeTakenMs, result.SubmittedAt, lessonJustCompleted);
     }
+
+    public Task<LessonResumeResponse> GetLessonResume(Guid lessonId, Guid childId) => BuildLessonResume(childId, lessonId);
 
     public async Task<object> CompleteLesson(Guid lessonId, Guid childId)
     {
@@ -55,44 +91,94 @@ public class LearningService(
         var child = await childRepository.GetById(childId) ?? throw new KeyNotFoundException("Child not found.");
 
         await EnsureChildLessonInChildProgram(child, lessonId);
+        await EnsurePreviousUnitsAllLessonsCompleted(child, lessonId);
 
-        var lessonExerciseIds = await learningRepository.GetLessonExerciseIds(lessonId);
-        var exercisesCount = lessonExerciseIds.Count;
-        var submittedCount = await learningRepository.CountDistinctSubmitted(childId, lessonExerciseIds);
-        if (submittedCount < exercisesCount)
-        {
-            throw new InvalidOperationException("Complete all exercises first.");
-        }
+        if (await learningRepository.CountExercises(lessonId) == 0)
+            throw new InvalidOperationException("This lesson has no exercises.");
+
+        if (!await learningRepository.AllLessonExercisesHaveCorrectAnswerAsync(childId, lessonId))
+            throw new InvalidOperationException("Answer all exercises correctly first.");
+
+        await TryFinalizeLessonIfNeeded(child, lessonId);
+        await unitOfWork.SaveChanges();
+
+        child = await childRepository.GetById(childId) ?? throw new KeyNotFoundException("Child not found.");
+        return new { ChildId = childId, child!.XpTotal, child.CurrentLevel, child.StreakCurrent };
+    }
+
+    private async Task<LessonResumeResponse> BuildLessonResume(Guid childId, Guid lessonId)
+    {
+        var lesson = await curriculumRepository.GetLesson(lessonId);
+        if (lesson is null || !lesson.IsPublished || lesson.Unit is null || !lesson.Unit.IsPublished)
+            throw new KeyNotFoundException("Lesson not found.");
+        var child = await childRepository.GetById(childId) ?? throw new KeyNotFoundException("Child not found.");
+
+        await EnsureChildLessonInChildProgram(child, lessonId);
+        await EnsurePreviousUnitsAllLessonsCompleted(child, lessonId);
+
+        if (await learningRepository.CountExercises(lessonId) == 0)
+            throw new InvalidOperationException("This lesson has no exercises.");
+
+        await TryFinalizeLessonIfNeeded(child, lessonId);
+        await unitOfWork.SaveChanges();
 
         var progress = await learningRepository.GetProgress(childId, lessonId);
+        var allCorrect = await learningRepository.AllLessonExercisesHaveCorrectAnswerAsync(childId, lessonId);
+        var completed = progress?.Status == LessonProgressStatus.Completed || allCorrect;
+
+        Guid? next = null;
+        if (!completed)
+            next = await GetNextExerciseIdRequiringFirstCorrect(childId, lessonId);
+
+        return new LessonResumeResponse(next, completed);
+    }
+
+    /// <returns><see langword="true"/> если урок впервые переведён в завершённый и начислен XP.</returns>
+    private async Task<bool> TryFinalizeLessonIfNeeded(Child child, Guid lessonId)
+    {
+        if (!await learningRepository.AllLessonExercisesHaveCorrectAnswerAsync(child.Id, lessonId))
+            return false;
+
+        var lesson = await curriculumRepository.GetLesson(lessonId) ?? throw new KeyNotFoundException("Lesson not found.");
+        var progress = await learningRepository.GetProgress(child.Id, lessonId);
         if (progress is null)
         {
-            progress = new ChildLessonProgress { ChildId = childId, LessonId = lessonId };
+            progress = new ChildLessonProgress { ChildId = child.Id, LessonId = lessonId };
             await learningRepository.AddProgress(progress);
         }
 
-        if (progress.Status != LessonProgressStatus.Completed)
-        {
-            progress.Status = LessonProgressStatus.Completed;
-            progress.XpAwarded = lesson.XpReward;
-            progress.CompletedAt = DateTime.UtcNow;
-            child.XpTotal += lesson.XpReward;
-            child.CurrentLevel = CalculateLevel(child.XpTotal);
-            UpdateStreak(child);
+        if (progress.Status == LessonProgressStatus.Completed)
+            return false;
 
-            var notification = new Notification
-            {
-                ParentId = child.ParentId,
-                ChildId = child.Id,
-                Type = NotificationType.Milestone,
-                Title = "Lesson completed",
-                Body = $"{child.DisplayName} completed {lesson.Title} and earned {lesson.XpReward} XP."
-            };
-            await notificationRepository.Add(notification);
+        progress.Status = LessonProgressStatus.Completed;
+        progress.XpAwarded = lesson.XpReward;
+        progress.CompletedAt = DateTime.UtcNow;
+        child.XpTotal += lesson.XpReward;
+        child.CurrentLevel = CalculateLevel(child.XpTotal);
+        UpdateStreak(child);
+
+        var notification = new Notification
+        {
+            ParentId = child.ParentId,
+            ChildId = child.Id,
+            Type = NotificationType.Milestone,
+            Title = "Lesson completed",
+            Body = $"{child.DisplayName} completed {lesson.Title} and earned {lesson.XpReward} XP."
+        };
+        await notificationRepository.Add(notification);
+        return true;
+    }
+
+    private async Task<Guid?> GetNextExerciseIdRequiringFirstCorrect(Guid childId, Guid lessonId)
+    {
+        var ids = await learningRepository.GetLessonExerciseIds(lessonId);
+        foreach (var exId in ids)
+        {
+            if (!await learningRepository.HasCorrectAnswerAsync(childId, exId))
+                return exId;
         }
 
-        await unitOfWork.SaveChanges();
-        return new { ChildId = childId, child.XpTotal, child.CurrentLevel, child.StreakCurrent };
+        return null;
     }
 
     private async Task EnsureChildLessonInChildProgram(Child child, Guid lessonId)
@@ -102,16 +188,30 @@ public class LearningService(
             throw new UnauthorizedAccessException("This lesson is not in the child's current program.");
     }
 
-    private async Task EnsureSequentialAccess(Guid childId, Guid lessonId)
+    /// <summary>Следующий юнит программы доступен только когда во всех предыдущих юнитах завершены все уроки.</summary>
+    private async Task EnsurePreviousUnitsAllLessonsCompleted(Child child, Guid lessonId)
     {
         var lesson = await curriculumRepository.GetLesson(lessonId) ?? throw new KeyNotFoundException("Lesson not found.");
-        var allLessons = await curriculumRepository.GetLessons(new LessonQueryOptions { UnitId = lesson.UnitId, Page = 1, PageSize = 200 }, restrictToPublishedCatalog: true);
-        var previousLesson = allLessons.Items.Where(x => x.OrderIndex < lesson.OrderIndex).OrderByDescending(x => x.OrderIndex).FirstOrDefault();
-        if (previousLesson is null) return;
+        var unit = lesson.Unit ?? throw new InvalidOperationException("Lesson has no unit.");
+        if (unit.ProgramId != child.CurrentProgramId)
+            throw new UnauthorizedAccessException("This lesson is not in the child's current program.");
 
-        var previousProgress = await learningRepository.GetProgress(childId, previousLesson.Id);
-        var done = previousProgress?.Status == LessonProgressStatus.Completed;
-        if (!done) throw new InvalidOperationException("Previous lesson must be completed first.");
+        var unitsPage = await curriculumRepository.GetUnits(new UnitQueryOptions { ProgramId = unit.ProgramId, Page = 1, PageSize = 500 },
+            restrictToPublishedCatalog: true);
+        var earlierUnits = unitsPage.Items.Where(u => u.OrderIndex < unit.OrderIndex).OrderBy(u => u.OrderIndex).ToList();
+
+        foreach (var u in earlierUnits)
+        {
+            var lessonsInUnit = await curriculumRepository.GetLessons(
+                new LessonQueryOptions { UnitId = u.Id, ProgramId = unit.ProgramId, Page = 1, PageSize = 500 },
+                restrictToPublishedCatalog: true);
+            foreach (var les in lessonsInUnit.Items)
+            {
+                var p = await learningRepository.GetProgress(child.Id, les.Id);
+                if (p?.Status != LessonProgressStatus.Completed)
+                    throw new InvalidOperationException("Complete all lessons in previous units first.");
+            }
+        }
     }
 
     private static int CalculateLevel(int xp)

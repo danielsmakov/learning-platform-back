@@ -54,6 +54,9 @@ public interface ILearningRepository
     Task AddExerciseResult(ExerciseResult result);
     Task<int> CountExercises(Guid lessonId);
     Task<List<Guid>> GetLessonExerciseIds(Guid lessonId);
+    /// <summary>Есть ли хотя бы один верный ответ по паре ребёнок / упражнение.</summary>
+    Task<bool> HasCorrectAnswerAsync(Guid childId, Guid exerciseId);
+    Task<bool> AllLessonExercisesHaveCorrectAnswerAsync(Guid childId, Guid lessonId);
     Task<int> CountDistinctSubmitted(Guid childId, List<Guid> exerciseIds);
     Task<ChildLessonProgress?> GetProgress(Guid childId, Guid lessonId);
     Task AddProgress(ChildLessonProgress progress);

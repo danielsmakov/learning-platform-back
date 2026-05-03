@@ -53,6 +53,8 @@ public record UpdateExerciseRequest(LessonType ExerciseType, int OrderIndex, str
 
 public record SubmitExerciseRequest(Guid ChildId, bool IsCorrect, int TimeTakenMs);
 public record CompleteLessonRequest(Guid ChildId);
+public record LessonResumeResponse(Guid? NextExerciseId, bool IsLessonCompleted);
+public record ExerciseSubmitResponse(Guid ResultId, bool IsCorrect, int TimeTakenMs, DateTime SubmittedAt, bool LessonJustCompleted);
 public record MarkNotificationsReadRequest(List<Guid> NotificationIds);
 
 public class QueryOptions
