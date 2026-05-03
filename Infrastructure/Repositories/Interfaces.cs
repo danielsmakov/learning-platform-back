@@ -19,6 +19,7 @@ public interface IChildRepository
     Task Delete(Child child);
     Task<bool> IsOwner(Guid parentId, Guid childId);
     Task<PagedResponse<Child>> GetByParent(Guid parentId, QueryOptions query);
+    Task<List<Guid>> GetAllChildIdsAsync();
     Task<int> CountAll();
     Task<List<Guid>> DistinctParentIds();
     Task<List<Child>> GetNotActiveToday(DateOnly today);
@@ -79,6 +80,8 @@ public interface IBadgeRepository
 {
     Task<List<Badge>> GetAll();
     Task<bool> Any();
+    Task<Badge?> GetByKey(string key);
+    Task Add(Badge badge);
     Task AddRange(params Badge[] badges);
     Task<List<Guid>> GetEarnedBadgeIds(Guid childId);
     Task AddChildBadge(ChildBadge childBadge);
