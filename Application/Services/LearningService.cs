@@ -284,7 +284,7 @@ public class LearningService(
     {
         var lesson = await curriculumRepository.GetLesson(lessonId) ?? throw new KeyNotFoundException("Lesson not found.");
         if (lesson.Unit is null || lesson.Unit.ProgramId != child.CurrentProgramId)
-            throw new UnauthorizedAccessException("This lesson is not in the child's current program.");
+            throw new AppForbiddenException("This lesson is not in the child's current program.");
     }
 
     /// <summary>Следующий юнит программы доступен только когда во всех предыдущих юнитах завершены все уроки.</summary>
@@ -293,7 +293,7 @@ public class LearningService(
         var lesson = await curriculumRepository.GetLesson(lessonId) ?? throw new KeyNotFoundException("Lesson not found.");
         var unit = lesson.Unit ?? throw new InvalidOperationException("Lesson has no unit.");
         if (unit.ProgramId != child.CurrentProgramId)
-            throw new UnauthorizedAccessException("This lesson is not in the child's current program.");
+            throw new AppForbiddenException("This lesson is not in the child's current program.");
 
         var unitsPage = await curriculumRepository.GetUnits(new UnitQueryOptions { ProgramId = unit.ProgramId, Page = 1, PageSize = 500 },
             restrictToPublishedCatalog: true);

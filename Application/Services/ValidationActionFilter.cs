@@ -1,4 +1,6 @@
 using FluentValidation;
+using FluentValidation.Results;
+using LearningPlatform.Application;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace LearningPlatform.Application.Services;
@@ -22,14 +24,13 @@ public class ValidationActionFilter(IServiceProvider services) : IAsyncActionFil
             await task.ConfigureAwait(false);
 
             var resultProperty = task.GetType().GetProperty("Result");
-            var result = resultProperty?.GetValue(task);
-            var isValid = (bool?)result?.GetType().GetProperty("IsValid")?.GetValue(result) ?? true;
-            if (isValid) continue;
+            var result = resultProperty?.GetValue(task) as ValidationResult;
+            if (result is null || result.IsValid) continue;
 
-            var errors = result?.GetType().GetProperty("Errors")?.GetValue(result) as IEnumerable<object>;
-            var messages = errors?.Select(e => e.GetType().GetProperty("ErrorMessage")?.GetValue(e)?.ToString()).Where(x => !string.IsNullOrWhiteSpace(x)).ToArray()
-                           ?? ["Validation failed."];
-            throw new InvalidOperationException(string.Join("; ", messages));
+            var dict = result.Errors
+                .GroupBy(e => string.IsNullOrEmpty(e.PropertyName) ? "_" : e.PropertyName)
+                .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+            throw new AppValidationException("Validation failed.", dict);
         }
 
         await next();

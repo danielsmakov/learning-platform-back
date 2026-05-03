@@ -7,6 +7,7 @@ using LearningPlatform.Application.Services;
 using LearningPlatform.Infrastructure;
 using LearningPlatform.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi;
@@ -23,9 +24,13 @@ builder.Services.AddSwaggerGen(c =>
         Title = "Learning Platform API",
         Version = "v1",
         Description =
-            "**Accept-Language (G2):** optional on catalog GETs (`/api/v1/programs`, `/units`, `/units/{id}`, `/lessons`, `/lessons/{id}`, `/lessons/{id}/exercises`) and `GET .../children/{id}/curriculum-map`. " +
-            "Send `ru`, `en`, or full tags like `ru-RU;q=0.9,en;q=0.8` — first tag wins (`ru*` → Russian, else English). " +
-            "See each operation’s `Accept-Language` header parameter in OpenAPI."
+            "**REST under `/api/v1/…`** — programs, units, lessons, exercises (catalog); `GET /api/v1/children/{id}/curriculum-map` (B1 curriculum map). " +
+            "Query `programId` or `childId` for catalog context; admin may use `all=true` on catalog lists; admin-only text filter: `search` on `GET /api/v1/lessons`. " +
+            "List responses use pagination fields `items`, `total`, `page`, `page_size`, `total_pages`. " +
+            "**Accept-Language (G2):** optional on catalog GETs and curriculum-map; send `ru`, `en`, or tags like `ru-RU;q=0.9,en;q=0.8` — first tag wins (`ru*` → Russian, else English). " +
+            "**Errors (A6):** JSON `{ \"message\", \"details\" }` — 401 not authenticated, 403 forbidden, 422 validation (`details.errors` field map), 400/404/500 as applicable. " +
+            "**SignalR (G4, not REST):** hub path `/hubs/parent-notifications`; role **Parent**; JWT via query `access_token` or header `Authorization: Bearer` (same as REST). " +
+            "Server event name `notification` (see `ParentNotificationPublisher.HubEventName`); payload shape: `id` (uuid), `type` (NotificationType enum int), `title`, `body`, `childId` (uuid|null), `createdAt` (ISO 8601), `isRead` (bool) — same as `ParentNotificationPublisher.ParentNotificationPayload`."
     });
 });
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
@@ -57,7 +62,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = JwtTokenService.GetValidationParameters(config);
-        // H3 / G4: браузерный SignalR — JWT в query `access_token` (см. README фронта).
+        // H3 / G4: SignalR — JWT в query `access_token` или заголовок (см. OpenAPI description выше).
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
@@ -75,6 +80,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, JsonAuthorizationMiddlewareResultHandler>();
 builder.Services.AddSignalR();
 
 builder.Services.AddHangfire(h =>

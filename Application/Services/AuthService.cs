@@ -38,10 +38,10 @@ public class AuthService(
     {
         await loginValidator.ValidateAndThrowAsync(request);
         var user = await userRepository.GetByEmail(request.Email.Trim().ToLowerInvariant())
-                   ?? throw new UnauthorizedAccessException("Invalid credentials.");
+                   ?? throw new AppUnauthorizedException("Invalid credentials.");
 
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-            throw new UnauthorizedAccessException("Invalid credentials.");
+            throw new AppUnauthorizedException("Invalid credentials.");
 
         return await BuildAuthResponse(user);
     }
@@ -50,9 +50,9 @@ public class AuthService(
     {
         await childLoginValidator.ValidateAndThrowAsync(request);
         var child = await childRepository.GetById(request.ChildId)
-                    ?? throw new UnauthorizedAccessException("Invalid child credentials.");
+                    ?? throw new AppUnauthorizedException("Invalid child credentials.");
         if (!BCrypt.Net.BCrypt.Verify(request.Pin, child.PinHash))
-            throw new UnauthorizedAccessException("Invalid child credentials.");
+            throw new AppUnauthorizedException("Invalid child credentials.");
 
         var shadowChildUser = new User
         {
@@ -66,11 +66,11 @@ public class AuthService(
     public async Task<AuthResponse> Refresh(string refreshToken)
     {
         var storedToken = await authRepository.FindValidRefreshToken(refreshToken)
-            ?? throw new UnauthorizedAccessException("Invalid refresh token.");
+            ?? throw new AppUnauthorizedException("Invalid refresh token.");
 
         storedToken.IsRevoked = true;
         var user = await userRepository.GetById(storedToken.UserId)
-                   ?? throw new UnauthorizedAccessException("Token owner not found.");
+                   ?? throw new AppUnauthorizedException("Token owner not found.");
         var response = await BuildAuthResponse(user);
         await unitOfWork.SaveChanges();
         return response;
