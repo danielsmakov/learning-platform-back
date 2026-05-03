@@ -27,9 +27,15 @@ public interface IChildRepository
 
 public interface ICurriculumRepository
 {
-    Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query);
+    Task<PagedResponse<LearningProgram>> GetPrograms(QueryOptions query, bool includeUnpublished);
     Task<LearningProgram?> GetProgram(Guid id);
     Task<LearningProgram?> GetProgramByTrack(ProgramDifficultyTrack track);
+    Task AddProgram(LearningProgram program);
+    Task DeleteProgram(LearningProgram program);
+    Task<int> CountUnitsForProgram(Guid programId);
+    Task<int> CountChildrenUsingProgram(Guid programId);
+
+    Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query);
     Task<Unit?> GetUnit(Guid id);
     Task AddUnit(Unit unit);
     Task DeleteUnit(Unit unit);

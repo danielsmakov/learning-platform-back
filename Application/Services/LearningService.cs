@@ -17,6 +17,7 @@ public class LearningService(
                        ?? throw new KeyNotFoundException("Exercise not found.");
         var child = await childRepository.GetById(request.ChildId) ?? throw new KeyNotFoundException("Child not found.");
 
+        await EnsureChildLessonInChildProgram(child, exercise.LessonId);
         await EnsureSequentialAccess(child.Id, exercise.LessonId);
 
         var result = new ExerciseResult
@@ -50,6 +51,8 @@ public class LearningService(
         if (lesson is null || !lesson.IsPublished)
             throw new KeyNotFoundException("Lesson not found.");
         var child = await childRepository.GetById(childId) ?? throw new KeyNotFoundException("Child not found.");
+
+        await EnsureChildLessonInChildProgram(child, lessonId);
 
         var lessonExerciseIds = await learningRepository.GetLessonExerciseIds(lessonId);
         var exercisesCount = lessonExerciseIds.Count;
@@ -88,6 +91,13 @@ public class LearningService(
 
         await unitOfWork.SaveChanges();
         return new { ChildId = childId, child.XpTotal, child.CurrentLevel, child.StreakCurrent };
+    }
+
+    private async Task EnsureChildLessonInChildProgram(Child child, Guid lessonId)
+    {
+        var lesson = await curriculumRepository.GetLesson(lessonId) ?? throw new KeyNotFoundException("Lesson not found.");
+        if (lesson.Unit is null || lesson.Unit.ProgramId != child.CurrentProgramId)
+            throw new UnauthorizedAccessException("This lesson is not in the child's current program.");
     }
 
     private async Task EnsureSequentialAccess(Guid childId, Guid lessonId)
