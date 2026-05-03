@@ -18,7 +18,7 @@ RUN dotnet ef migrations bundle \
     --startup-project learning-platform-back.csproj \
     --runtime linux-x64 \
     --output /bundle/migrate \
-    --self-contained true \
+    --self-contained \
     --force
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
