@@ -15,6 +15,8 @@ public class LearningService(
     {
         var exercise = await curriculumRepository.GetExercise(exerciseId)
                        ?? throw new KeyNotFoundException("Exercise not found.");
+        if (exercise.Lesson is null || !exercise.Lesson.IsPublished || exercise.Lesson.Unit is null || !exercise.Lesson.Unit.IsPublished)
+            throw new KeyNotFoundException("Exercise not found.");
         var child = await childRepository.GetById(request.ChildId) ?? throw new KeyNotFoundException("Child not found.");
 
         await EnsureChildLessonInChildProgram(child, exercise.LessonId);
@@ -48,7 +50,7 @@ public class LearningService(
     public async Task<object> CompleteLesson(Guid lessonId, Guid childId)
     {
         var lesson = await curriculumRepository.GetLesson(lessonId);
-        if (lesson is null || !lesson.IsPublished)
+        if (lesson is null || !lesson.IsPublished || lesson.Unit is null || !lesson.Unit.IsPublished)
             throw new KeyNotFoundException("Lesson not found.");
         var child = await childRepository.GetById(childId) ?? throw new KeyNotFoundException("Child not found.");
 
@@ -103,7 +105,7 @@ public class LearningService(
     private async Task EnsureSequentialAccess(Guid childId, Guid lessonId)
     {
         var lesson = await curriculumRepository.GetLesson(lessonId) ?? throw new KeyNotFoundException("Lesson not found.");
-        var allLessons = await curriculumRepository.GetLessons(new LessonQueryOptions { UnitId = lesson.UnitId, IsPublished = true, Page = 1, PageSize = 200 });
+        var allLessons = await curriculumRepository.GetLessons(new LessonQueryOptions { UnitId = lesson.UnitId, Page = 1, PageSize = 200 }, restrictToPublishedCatalog: true);
         var previousLesson = allLessons.Items.Where(x => x.OrderIndex < lesson.OrderIndex).OrderByDescending(x => x.OrderIndex).FirstOrDefault();
         if (previousLesson is null) return;
 

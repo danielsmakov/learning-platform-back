@@ -81,24 +81,28 @@ public class CurriculumRepository(AppDbContext db) : ICurriculumRepository
 
     public Task<int> CountChildrenUsingProgram(Guid programId) => db.Children.CountAsync(x => x.CurrentProgramId == programId);
 
-    public Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query)
+    public Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query, bool restrictToPublishedCatalog = true)
     {
         var q = db.Units.AsQueryable();
         if (query.ProgramId.HasValue) q = q.Where(x => x.ProgramId == query.ProgramId.Value);
+        if (restrictToPublishedCatalog) q = q.Where(x => x.IsPublished);
         return q.OrderBy(x => x.OrderIndex).ToPagedResponse(query);
     }
 
     public Task<Unit?> GetUnit(Guid id) => db.Units.FirstOrDefaultAsync(x => x.Id == id);
     public Task AddUnit(Unit unit) => db.Units.AddAsync(unit).AsTask();
     public Task DeleteUnit(Unit unit) { db.Units.Remove(unit); return Task.CompletedTask; }
-    public Task<PagedResponse<Lesson>> GetLessons(LessonQueryOptions query)
+    public Task<PagedResponse<Lesson>> GetLessons(LessonQueryOptions query, bool restrictToPublishedCatalog = true)
     {
         var q = db.Lessons.Include(x => x.Unit).AsQueryable();
         if (query.ProgramId.HasValue) q = q.Where(x => x.Unit!.ProgramId == query.ProgramId.Value);
         if (query.UnitId.HasValue) q = q.Where(x => x.UnitId == query.UnitId.Value);
         if (query.LessonType.HasValue) q = q.Where(x => x.LessonType == query.LessonType.Value);
         if (query.Difficulty.HasValue) q = q.Where(x => x.Difficulty == query.Difficulty.Value);
-        if (query.IsPublished.HasValue) q = q.Where(x => x.IsPublished == query.IsPublished.Value);
+        if (restrictToPublishedCatalog)
+            q = q.Where(x => x.IsPublished && x.Unit!.IsPublished);
+        else if (query.IsPublished.HasValue)
+            q = q.Where(x => x.IsPublished == query.IsPublished.Value);
         return q.OrderBy(x => x.OrderIndex).ToPagedResponse(query);
     }
 
@@ -106,7 +110,16 @@ public class CurriculumRepository(AppDbContext db) : ICurriculumRepository
         db.Lessons.Include(x => x.Unit).FirstOrDefaultAsync(x => x.Id == id);
     public Task AddLesson(Lesson lesson) => db.Lessons.AddAsync(lesson).AsTask();
     public Task DeleteLesson(Lesson lesson) { db.Lessons.Remove(lesson); return Task.CompletedTask; }
-    public Task<PagedResponse<Exercise>> GetExercises(Guid lessonId, QueryOptions query) => db.Exercises.Where(x => x.LessonId == lessonId).OrderBy(x => x.OrderIndex).ToPagedResponse(query);
+    public Task<PagedResponse<Exercise>> GetExercises(Guid lessonId, QueryOptions query, bool restrictToPublishedCatalog = true)
+    {
+        var q = db.Exercises
+            .Include(x => x.Lesson)
+            .ThenInclude(l => l!.Unit)
+            .Where(x => x.LessonId == lessonId);
+        if (restrictToPublishedCatalog)
+            q = q.Where(x => x.Lesson != null && x.Lesson.IsPublished && x.Lesson.Unit != null && x.Lesson.Unit.IsPublished);
+        return q.OrderBy(x => x.OrderIndex).ToPagedResponse(query);
+    }
     public Task<Exercise?> GetExercise(Guid id) =>
         db.Exercises.Include(x => x.Lesson).ThenInclude(l => l!.Unit).FirstOrDefaultAsync(x => x.Id == id);
     public Task AddExercise(Exercise exercise) => db.Exercises.AddAsync(exercise).AsTask();

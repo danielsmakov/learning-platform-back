@@ -51,7 +51,8 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         await unitOfWork.SaveChanges();
     }
 
-    public Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query) => curriculumRepository.GetUnits(query);
+    public Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query, bool includeUnpublished = false) =>
+        curriculumRepository.GetUnits(query, restrictToPublishedCatalog: !includeUnpublished);
 
     public async Task<Unit> CreateUnit(CreateUnitRequest request, Guid adminId, Guid programContextId)
     {
@@ -102,7 +103,8 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         await unitOfWork.SaveChanges();
     }
 
-    public Task<PagedResponse<Lesson>> GetLessons(LessonQueryOptions query) => curriculumRepository.GetLessons(query);
+    public Task<PagedResponse<Lesson>> GetLessons(LessonQueryOptions query, bool includeUnpublished = false) =>
+        curriculumRepository.GetLessons(query, restrictToPublishedCatalog: !includeUnpublished);
 
     public async Task<Lesson> CreateLesson(CreateLessonRequest request, Guid adminId, Guid programContextId)
     {
@@ -151,13 +153,23 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         await unitOfWork.SaveChanges();
     }
 
-    public Task<PagedResponse<Exercise>> GetExercises(Guid lessonId, QueryOptions query) => curriculumRepository.GetExercises(lessonId, query);
+    public Task<PagedResponse<Exercise>> GetExercises(Guid lessonId, QueryOptions query, bool includeUnpublished = false) =>
+        curriculumRepository.GetExercises(lessonId, query, restrictToPublishedCatalog: !includeUnpublished);
 
     public async Task EnsureLessonBelongsToProgram(Guid lessonId, Guid programId)
     {
         var lesson = await curriculumRepository.GetLesson(lessonId) ?? throw new KeyNotFoundException("Lesson not found.");
         if (lesson.Unit is null || lesson.Unit.ProgramId != programId)
             throw new InvalidOperationException("Lesson is not in the resolved program.");
+    }
+
+    /// <summary>A1: черновики недоступны в каталоге без явного admin includeUnpublished.</summary>
+    public async Task EnsureLessonPublishedForCatalog(Guid lessonId, bool includeUnpublished)
+    {
+        if (includeUnpublished) return;
+        var lesson = await curriculumRepository.GetLesson(lessonId) ?? throw new KeyNotFoundException("Lesson not found.");
+        if (!lesson.IsPublished || lesson.Unit is null || !lesson.Unit.IsPublished)
+            throw new KeyNotFoundException("Lesson not found.");
     }
 
     public async Task<Exercise> CreateExercise(Guid lessonId, CreateExerciseRequest request, Guid adminId, Guid programContextId)
