@@ -1,9 +1,13 @@
+# BACKEND_IMAGE задаёт CI. В .env: ConnectionStrings__DefaultConnection=...; если Postgres на хосте
+# (другой контейнер с -p 5432), используйте Host=host.docker.internal;Port=5432 (см. extra_hosts ниже).
 services:
   api:
     image: ${BACKEND_IMAGE}
     container_name: learningplatform-api
     env_file:
       - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:8080:8080"
     restart: unless-stopped

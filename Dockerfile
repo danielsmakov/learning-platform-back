@@ -27,5 +27,5 @@ ENV ASPNETCORE_URLS=http://+:8080
 COPY --from=build /app/publish .
 COPY --from=bundle /bundle/migrate ./migrate
 RUN chmod +x migrate
-# $$ → $ at image build time so the shell sees $ConnectionStrings__DefaultConnection at container start.
-ENTRYPOINT ["/bin/sh", "-c", "set -eu; conn=\"$${ConnectionStrings__DefaultConnection:-}\"; test -n \"$$conn\" || { echo ConnectionStrings__DefaultConnection required >&2; exit 1; }; /app/migrate --connection \"$$conn\"; exec dotnet /app/learning-platform-back.dll"]
+# $$ → $ при сборке образа. Убираем CR/пробелы по краям (.env с Windows). printenv надёжнее ${VAR} в edge-кейсах.
+ENTRYPOINT ["/bin/sh", "-c", "set -eu; conn=$(printenv ConnectionStrings__DefaultConnection | tr -d '\\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); test -n \"$$conn\" || { echo ConnectionStrings__DefaultConnection required >&2; exit 1; }; /app/migrate --connection \"$$conn\"; exec dotnet /app/learning-platform-back.dll"]

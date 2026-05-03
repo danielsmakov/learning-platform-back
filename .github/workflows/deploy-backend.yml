@@ -80,6 +80,10 @@ jobs:
             export BACKEND_IMAGE
             docker compose pull
             docker compose up -d
-            sleep 8
-            curl -fsS http://127.0.0.1:8080/health >/dev/null
+            sleep 10
+            if ! curl -fsS http://127.0.0.1:8080/health >/dev/null; then
+              echo "--- docker logs learningplatform-api (last 120 lines) ---"
+              docker logs learningplatform-api --tail 120 2>&1 || true
+              exit 1
+            fi
             echo "Health check OK"
