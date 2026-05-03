@@ -1,5 +1,6 @@
 # SSH: repository secret SSH_PRIVATE_KEY (рекомендуется) **или** SSH_PASSWORD (логин по паролю).
 # Для пароля на VPS в sshd должно быть PasswordAuthentication yes (перезапуск sshd после правки).
+# На VPS в /opt/learningplatform/backend/.env задайте POSTGRES_CONNECTION_STRING=Host=...;... (см. docker-compose.yml).
 name: Deploy backend (manual)
 
 on:

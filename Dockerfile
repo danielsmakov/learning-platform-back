@@ -27,5 +27,5 @@ ENV ASPNETCORE_URLS=http://+:8080
 COPY --from=build /app/publish .
 COPY --from=bundle /bundle/migrate ./migrate
 RUN chmod +x migrate
-# $$ → $ при сборке образа. Убираем CR/пробелы по краям (.env с Windows). printenv надёжнее ${VAR} в edge-кейсах.
-ENTRYPOINT ["/bin/sh", "-c", "set -eu; conn=$(printenv ConnectionStrings__DefaultConnection | tr -d '\\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); test -n \"$$conn\" || { echo ConnectionStrings__DefaultConnection required >&2; exit 1; }; /app/migrate --connection \"$$conn\"; exec dotnet /app/learning-platform-back.dll"]
+# $$ → $ при сборке. Без pipefail после printenv sed мог вернуть 0 при пустом printenv — в migrate уходила пустая строка.
+ENTRYPOINT ["/bin/sh", "-c", "set -eu; _raw=$(printenv ConnectionStrings__DefaultConnection || true); test -n \"$$_raw\" || { echo ConnectionStrings__DefaultConnection required >&2; exit 1; }; cs=$(printf '%s' \"$$_raw\" | tr -d '\\r'); cs=$(printf '%s' \"$$cs\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); /app/migrate --connection \"$$cs\"; exec dotnet /app/learning-platform-back.dll"]
