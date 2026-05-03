@@ -28,6 +28,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Unit>().HasIndex(x => x.ProgramId);
         modelBuilder.Entity<Child>().HasOne(x => x.CurrentProgram).WithMany().HasForeignKey(x => x.CurrentProgramId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Unit>().HasOne(x => x.Program).WithMany(x => x.Units).HasForeignKey(x => x.ProgramId).OnDelete(DeleteBehavior.Restrict);
+        // Match InitialCreate: deleting a unit/lesson cascades to children in the D2 tree.
+        modelBuilder.Entity<Lesson>().HasOne(x => x.Unit).WithMany(x => x.Lessons).HasForeignKey(x => x.UnitId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Exercise>().HasOne(x => x.Lesson).WithMany(x => x.Exercises).HasForeignKey(x => x.LessonId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<Lesson>().HasIndex(x => new { x.UnitId, x.OrderIndex });
         modelBuilder.Entity<Exercise>().HasIndex(x => new { x.LessonId, x.OrderIndex });
         modelBuilder.Entity<ChildLessonProgress>().HasIndex(x => new { x.ChildId, x.LessonId }).IsUnique();

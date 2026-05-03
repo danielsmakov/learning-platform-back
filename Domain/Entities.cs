@@ -32,6 +32,10 @@ public class Child
     public LearningProgram? CurrentProgram { get; set; }
 }
 
+/// <summary>
+/// Learning track. Content hierarchy (D2):
+/// <see cref="LearningProgram"/> → <see cref="Unit"/> → <see cref="Lesson"/> → <see cref="Exercise"/>.
+/// </summary>
 [Table("Programs")]
 public class LearningProgram
 {
@@ -43,6 +47,7 @@ public class LearningProgram
     public ICollection<Unit> Units { get; set; } = [];
 }
 
+/// <summary>Catalog unit; belongs to exactly one <see cref="LearningProgram"/>.</summary>
 public class Unit
 {
     [Key] public Guid Id { get; set; } = Guid.NewGuid();
@@ -52,8 +57,10 @@ public class Unit
     [MaxLength(2000)] public string Description { get; set; } = string.Empty;
     public int OrderIndex { get; set; }
     public bool IsPublished { get; set; }
+    public ICollection<Lesson> Lessons { get; set; } = [];
 }
 
+/// <summary>Lesson; linked to a <see cref="Unit"/> (program track flows through the unit).</summary>
 public class Lesson
 {
     [Key] public Guid Id { get; set; } = Guid.NewGuid();
@@ -65,8 +72,10 @@ public class Lesson
     public Difficulty Difficulty { get; set; } = Difficulty.Easy;
     public int XpReward { get; set; } = 10;
     public bool IsPublished { get; set; }
+    public ICollection<Exercise> Exercises { get; set; } = [];
 }
 
+/// <summary>Exercise; linked to a <see cref="Lesson"/>.</summary>
 public class Exercise
 {
     [Key] public Guid Id { get; set; } = Guid.NewGuid();
