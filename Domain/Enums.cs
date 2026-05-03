@@ -41,7 +41,8 @@ public enum NotificationType
 {
     Milestone = 1,
     StreakReminder = 2,
-    WeeklySummary = 3
+    WeeklySummary = 3,
+    AdaptiveProgramChange = 4
 }
 
 /// <summary>Дорожка уровня учебной программы (не путать с <see cref="Difficulty"/> урока).</summary>

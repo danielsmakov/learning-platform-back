@@ -8,6 +8,7 @@ using LearningPlatform.Infrastructure;
 using LearningPlatform.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 EnvBootstrap.LoadLocalEnvFile();
 var builder = WebApplication.CreateBuilder(args);
@@ -67,6 +68,16 @@ builder.Services.AddHangfire(h =>
 });
 builder.Services.AddHangfireServer();
 
+builder.Services.AddOptions<AdaptiveErrorsOptions>()
+    .Configure<IConfiguration>((opts, cfg) =>
+    {
+        cfg.GetSection(AdaptiveErrorsOptions.SectionName).Bind(opts);
+        if (int.TryParse(cfg["ADAPTIVE_ERRORS_DOWNGRADE_THRESHOLD"], out var d) && d > 0)
+            opts.DowngradeThreshold = d;
+        if (int.TryParse(cfg["ADAPTIVE_ERRORS_UPGRADE_MAX"], out var u) && u >= 0)
+            opts.UpgradeMax = u;
+    });
+
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -85,6 +96,7 @@ builder.Services.AddScoped<LearningService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<BadgeEvaluationJob>();
+builder.Services.AddScoped<AdaptiveDifficultyJob>();
 builder.Services.AddScoped<StartupSeeder>();
 
 var app = builder.Build();
@@ -118,6 +130,10 @@ using (var scope = app.Services.CreateScope())
         "weekly-summary",
         s => s.CreateWeeklySummaries(),
         "0 12 * * 0");
+    recurringJobManager.AddOrUpdate<AdaptiveDifficultyJob>(
+        "adaptive-difficulty-scheduled",
+        j => j.ProcessScheduledCompletedUnitsAsync(),
+        "*/15 * * * *");
 }
 
 app.Run();

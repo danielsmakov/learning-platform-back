@@ -177,6 +177,25 @@ public class LearningRepository(AppDbContext db) : ILearningRepository
         await db.ChildUnitProgresses.AddAsync(row);
         return row;
     }
+
+    public Task<ChildUnitProgress?> GetChildUnitProgressAsync(Guid childId, Guid unitId) =>
+        db.ChildUnitProgresses.FirstOrDefaultAsync(x => x.ChildId == childId && x.UnitId == unitId);
+
+    public void RemoveChildUnitProgress(ChildUnitProgress row)
+    {
+        db.ChildUnitProgresses.Remove(row);
+    }
+
+    public Task<List<ChildUnitProgress>> GetCompletedChildUnitProgressRowsAsync() =>
+        db.ChildUnitProgresses.Where(x => x.Status == UnitProgressStatus.Completed).ToListAsync();
+
+    public async Task ClearChildLearningProgressAsync(Guid childId)
+    {
+        await db.ExerciseResults.Where(x => x.ChildId == childId).ExecuteDeleteAsync();
+        await db.ChildLessonProgresses.Where(x => x.ChildId == childId).ExecuteDeleteAsync();
+        await db.ChildUnitProgresses.Where(x => x.ChildId == childId).ExecuteDeleteAsync();
+    }
+
     public Task<PagedResponse<ChildLessonProgress>> GetProgressByChild(Guid childId, QueryOptions query) => db.ChildLessonProgresses.Where(x => x.ChildId == childId).OrderByDescending(x => x.CompletedAt).ToPagedResponse(query);
     public Task<int> CountCompletedLessons(Guid childId) => db.ChildLessonProgresses.CountAsync(x => x.ChildId == childId && x.Status == LessonProgressStatus.Completed);
     public Task<int> CountCompletedLessonsAll() => db.ChildLessonProgresses.CountAsync(x => x.Status == LessonProgressStatus.Completed);
