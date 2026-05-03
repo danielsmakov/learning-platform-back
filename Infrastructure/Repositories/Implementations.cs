@@ -130,7 +130,23 @@ public class LearningRepository(AppDbContext db) : ILearningRepository
 {
     public Task AddExerciseResult(ExerciseResult result) => db.ExerciseResults.AddAsync(result).AsTask();
     public Task<int> CountExercises(Guid lessonId) => db.Exercises.CountAsync(x => x.LessonId == lessonId);
-    public Task<List<Guid>> GetLessonExerciseIds(Guid lessonId) => db.Exercises.Where(x => x.LessonId == lessonId).Select(x => x.Id).ToListAsync();
+    public Task<List<Guid>> GetLessonExerciseIds(Guid lessonId) =>
+        db.Exercises.Where(x => x.LessonId == lessonId).OrderBy(x => x.OrderIndex).Select(x => x.Id).ToListAsync();
+
+    public Task<bool> HasCorrectAnswerAsync(Guid childId, Guid exerciseId) =>
+        db.ExerciseResults.AnyAsync(r => r.ChildId == childId && r.ExerciseId == exerciseId && r.IsCorrect);
+
+    public async Task<bool> AllLessonExercisesHaveCorrectAnswerAsync(Guid childId, Guid lessonId)
+    {
+        var ids = await GetLessonExerciseIds(lessonId);
+        if (ids.Count == 0) return false;
+        foreach (var exId in ids)
+        {
+            if (!await HasCorrectAnswerAsync(childId, exId)) return false;
+        }
+
+        return true;
+    }
     public Task<int> CountDistinctSubmitted(Guid childId, List<Guid> exerciseIds) => db.ExerciseResults.Where(x => x.ChildId == childId && exerciseIds.Contains(x.ExerciseId)).Select(x => x.ExerciseId).Distinct().CountAsync();
     public Task<ChildLessonProgress?> GetProgress(Guid childId, Guid lessonId) => db.ChildLessonProgresses.FirstOrDefaultAsync(x => x.ChildId == childId && x.LessonId == lessonId);
     public Task AddProgress(ChildLessonProgress progress) => db.ChildLessonProgresses.AddAsync(progress).AsTask();

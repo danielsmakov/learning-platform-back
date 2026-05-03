@@ -94,6 +94,8 @@ public class ChildLessonProgress
     public Guid ChildId { get; set; }
     public Guid LessonId { get; set; }
     public LessonProgressStatus Status { get; set; } = LessonProgressStatus.NotStarted;
+    /// <summary>Последнее упражнение урока, по которому получен первый верный ответ (resume внутри урока).</summary>
+    public Guid? LastCompletedExerciseId { get; set; }
     public int XpAwarded { get; set; }
     public DateTime? CompletedAt { get; set; }
 }

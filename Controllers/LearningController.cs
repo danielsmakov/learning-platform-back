@@ -19,7 +19,17 @@ public class LearningController(
     public async Task<IActionResult> SubmitExercise(Guid id, [FromBody] SubmitExerciseRequest request)
     {
         await AuthGuard.RequireChildAccess(User, childService, request.ChildId);
-        return Ok(await service.SubmitExercise(id, request));
+        var response = await service.SubmitExercise(id, request);
+        if (response.LessonJustCompleted)
+            jobs.Enqueue<BadgeEvaluationJob>(x => x.Evaluate(request.ChildId));
+        return Ok(response);
+    }
+
+    [HttpGet("lessons/{id:guid}/resume")]
+    public async Task<IActionResult> GetLessonResume(Guid id, [FromQuery] Guid childId)
+    {
+        await AuthGuard.RequireChildAccess(User, childService, childId);
+        return Ok(await service.GetLessonResume(id, childId));
     }
 
     [HttpPost("lessons/{id:guid}/complete")]
