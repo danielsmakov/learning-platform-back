@@ -61,6 +61,8 @@ public interface ILearningRepository
     /// <summary>Есть ли хотя бы один верный ответ по паре ребёнок / упражнение.</summary>
     Task<bool> HasCorrectAnswerAsync(Guid childId, Guid exerciseId);
     Task<bool> AllLessonExercisesHaveCorrectAnswerAsync(Guid childId, Guid lessonId);
+    /// <summary>Последний по времени результат по любому упражнению урока (для идемпотентного submit).</summary>
+    Task<ExerciseResult?> GetLatestExerciseResultForLessonAsync(Guid childId, Guid lessonId);
     Task<int> CountCompletedPublishedLessonsInUnitAsync(Guid childId, Guid unitId);
     Task<int> CountDistinctSubmitted(Guid childId, List<Guid> exerciseIds);
     Task<ChildLessonProgress?> GetProgress(Guid childId, Guid lessonId);

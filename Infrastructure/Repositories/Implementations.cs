@@ -163,6 +163,16 @@ public class LearningRepository(AppDbContext db) : ILearningRepository
         return true;
     }
 
+    public async Task<ExerciseResult?> GetLatestExerciseResultForLessonAsync(Guid childId, Guid lessonId)
+    {
+        var ids = await GetLessonExerciseIds(lessonId);
+        if (ids.Count == 0) return null;
+        return await db.ExerciseResults.AsNoTracking()
+            .Where(r => r.ChildId == childId && ids.Contains(r.ExerciseId))
+            .OrderByDescending(r => r.SubmittedAt)
+            .FirstOrDefaultAsync();
+    }
+
     public Task<int> CountCompletedPublishedLessonsInUnitAsync(Guid childId, Guid unitId) =>
         db.ChildLessonProgresses.CountAsync(p =>
             p.ChildId == childId &&
