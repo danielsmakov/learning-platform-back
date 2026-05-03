@@ -68,6 +68,19 @@ public class CurriculumService(
         return page;
     }
 
+    /// <summary>A2: одна карточка юнита в контексте программы каталога; G2 — локализация через Accept-Language.</summary>
+    public async Task<Unit> GetUnitCatalogCard(Guid unitId, Guid programId, bool includeUnpublished, string? acceptLanguage)
+    {
+        var unit = await curriculumRepository.GetUnit(unitId) ?? throw new KeyNotFoundException("Unit not found.");
+        if (unit.ProgramId != programId)
+            throw new InvalidOperationException("Unit is not in the resolved program.");
+        if (!includeUnpublished && !unit.IsPublished)
+            throw new KeyNotFoundException("Unit not found.");
+        if (!string.IsNullOrWhiteSpace(acceptLanguage))
+            await localization.ApplyUnitsAsync([unit], LocalePreference.Parse(acceptLanguage));
+        return unit;
+    }
+
     public async Task<Unit> CreateUnit(CreateUnitRequest request, Guid adminId, Guid programContextId)
     {
         if (request.ProgramId != programContextId)
@@ -123,6 +136,17 @@ public class CurriculumService(
         if (!string.IsNullOrWhiteSpace(acceptLanguage))
             await localization.ApplyLessonsAsync(page.Items.ToList(), LocalePreference.Parse(acceptLanguage));
         return page;
+    }
+
+    /// <summary>A2: одна карточка урока; G2 — локализация заголовка через Accept-Language.</summary>
+    public async Task<Lesson> GetLessonCatalogCard(Guid lessonId, Guid programId, bool includeUnpublished, string? acceptLanguage)
+    {
+        await EnsureLessonBelongsToProgram(lessonId, programId);
+        await EnsureLessonPublishedForCatalog(lessonId, includeUnpublished);
+        var lesson = await curriculumRepository.GetLesson(lessonId) ?? throw new KeyNotFoundException("Lesson not found.");
+        if (!string.IsNullOrWhiteSpace(acceptLanguage))
+            await localization.ApplyLessonsAsync([lesson], LocalePreference.Parse(acceptLanguage));
+        return lesson;
     }
 
     public async Task<Lesson> CreateLesson(CreateLessonRequest request, Guid adminId, Guid programContextId)

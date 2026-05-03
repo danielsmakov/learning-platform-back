@@ -1,0 +1,41 @@
+### G2 / A2 — примеры клиента (Accept-Language + карточки каталога)
+### Подставьте @baseUrl, @programId, @unitId, @lessonId, при необходимости @childId и Bearer-токен.
+
+@baseUrl = http://localhost:5000
+@programId = 00000000-0000-0000-0000-000000000000
+@unitId = 00000000-0000-0000-0000-000000000000
+@lessonId = 00000000-0000-0000-0000-000000000000
+
+### Список программ (локаль)
+GET {{baseUrl}}/api/v1/programs?page=1&pageSize=20
+Accept-Language: ru
+
+###
+
+### Список юнитов программы (аноним — нужен programId)
+GET {{baseUrl}}/api/v1/units?programId={{programId}}&page=1&pageSize=50
+Accept-Language: en
+
+###
+
+### A2: карточка юнита
+GET {{baseUrl}}/api/v1/units/{{unitId}}?programId={{programId}}
+Accept-Language: ru-RU;q=0.9, en;q=0.8
+
+###
+
+### A2: карточка урока
+GET {{baseUrl}}/api/v1/lessons/{{lessonId}}?programId={{programId}}
+Accept-Language: en
+
+###
+
+### Каталог в контексте ребёнка (родительский JWT) — вместо programId
+# GET {{baseUrl}}/api/v1/units/{{unitId}}?childId={{childId}}
+# Authorization: Bearer {{parentToken}}
+
+###
+
+### Упражнения урока (уже было в API; тот же заголовок)
+GET {{baseUrl}}/api/v1/lessons/{{lessonId}}/exercises?programId={{programId}}&page=1&pageSize=50
+Accept-Language: ru

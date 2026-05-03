@@ -74,9 +74,10 @@ public class ChildrenController(ParentChildService service, CurriculumMapService
         return Ok(await service.GetChildBadges(id, query));
     }
 
-    /// <summary>B1: карта куррикулума ребёнка. B6/G2: строки контента по заголовку Accept-Language (ru/en).</summary>
+    /// <summary>B1: карта куррикулума ребёнка. G2: заголовок Accept-Language (ru/en) — см. OpenAPI и examples/catalog-client.http.</summary>
     [HttpGet("{id:guid}/curriculum-map")]
-    public async Task<IActionResult> GetCurriculumMap(Guid id, [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
+    public async Task<IActionResult> GetCurriculumMap(Guid id,
+        [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
     {
         await AuthGuard.RequireChildAccess(User, service, id);
         var locale = LocalePreference.Parse(acceptLanguage);

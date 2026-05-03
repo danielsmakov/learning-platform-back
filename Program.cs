@@ -9,13 +9,25 @@ using LearningPlatform.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.OpenApi;
 
 EnvBootstrap.LoadLocalEnvFile();
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Learning Platform API",
+        Version = "v1",
+        Description =
+            "**Accept-Language (G2):** optional on catalog GETs (`/api/v1/programs`, `/units`, `/units/{id}`, `/lessons`, `/lessons/{id}`, `/lessons/{id}/exercises`) and `GET .../children/{id}/curriculum-map`. " +
+            "Send `ru`, `en`, or full tags like `ru-RU;q=0.9,en;q=0.8` — first tag wins (`ru*` → Russian, else English). " +
+            "See each operation’s `Accept-Language` header parameter and `examples/catalog-client.http`."
+    });
+});
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 builder.Services.AddScoped<ValidationActionFilter>();
 builder.Services.AddControllers(options =>

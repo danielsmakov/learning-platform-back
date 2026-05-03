@@ -9,15 +9,15 @@ namespace LearningPlatform.Controllers;
 [Route("api/v1/programs")]
 public class ProgramsController(CurriculumService curriculum) : ControllerBase
 {
-    /// <summary>Список программ. По умолчанию только опубликованные; all=true — только админ, все строки.</summary>
+    /// <summary>Список программ (G2: Accept-Language). По умолчанию только опубликованные; all=true — только админ, все строки.</summary>
     [AllowAnonymous]
     [HttpGet]
-    public async Task<IActionResult> ListPrograms([FromQuery] QueryOptions query, [FromQuery] bool all = false)
+    public async Task<IActionResult> ListPrograms([FromQuery] QueryOptions query, [FromQuery] bool all = false,
+        [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
     {
         if (all)
             AuthGuard.RequireAdmin(User);
-        return Ok(await curriculum.GetPrograms(query, includeUnpublished: all,
-            acceptLanguage: Request.Headers["Accept-Language"].ToString()));
+        return Ok(await curriculum.GetPrograms(query, includeUnpublished: all, acceptLanguage: acceptLanguage));
     }
 
     [Authorize]
