@@ -3,6 +3,7 @@
 #   POSTGRES_CONNECTION_STRING=Host=host.docker.internal;Port=5432;Database=...;Username=...;Password=...
 # Compose подставит её в ConnectionStrings__DefaultConnection внутри контейнера (надёжнее, чем только env_file + __).
 # Postgres на хосте: extra_hosts + host.docker.internal (см. ниже).
+# Публикация наружу (HTTP): nginx :80 → 127.0.0.1:8080 — см. deploy/nginx/INSTALL.txt
 services:
   api:
     image: ${BACKEND_IMAGE}

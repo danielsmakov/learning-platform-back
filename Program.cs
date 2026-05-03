@@ -11,7 +11,9 @@ using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi;
@@ -66,6 +68,18 @@ builder.Services.AddControllers(options =>
         // EF Include(Lesson→Unit) + fixup заполняет Unit.Lessons → цикл при сериализации (GET /lessons, /exercises).
         o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+    foreach (var ip in new[] { "127.0.0.1", "::1", "172.17.0.1" })
+    {
+        if (IPAddress.TryParse(ip, out var addr))
+            options.KnownProxies.Add(addr);
+    }
+});
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendCors", policy =>
@@ -207,6 +221,8 @@ builder.Services.AddScoped<UnitCompletionFollowUpJob>();
 builder.Services.AddScoped<StartupSeeder>();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
