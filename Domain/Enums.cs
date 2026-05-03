@@ -42,7 +42,13 @@ public enum NotificationType
     Milestone = 1,
     StreakReminder = 2,
     WeeklySummary = 3,
-    AdaptiveProgramChange = 4
+    AdaptiveProgramChange = 4,
+    /// <summary>G4: бейдж / ачивка.</summary>
+    BadgeEarned = 5,
+    /// <summary>G4: повышение уровня (XP / геймификация).</summary>
+    LevelUp = 6,
+    /// <summary>G4: успешное завершение юнита.</summary>
+    UnitCompleted = 7
 }
 
 /// <summary>Дорожка уровня учебной программы (не путать с <see cref="Difficulty"/> урока).</summary>

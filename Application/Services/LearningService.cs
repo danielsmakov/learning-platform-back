@@ -11,7 +11,8 @@ public class LearningService(
     ILearningRepository learningRepository,
     INotificationRepository notificationRepository,
     IUnitOfWork unitOfWork,
-    IBackgroundJobClient backgroundJobs)
+    IBackgroundJobClient backgroundJobs,
+    IParentNotificationPublisher notificationPublisher)
 {
     public async Task<ExerciseSubmitResponse> SubmitExercise(Guid exerciseId, SubmitExerciseRequest request)
     {
@@ -30,18 +31,20 @@ public class LearningService(
 
         if (await learningRepository.AllLessonExercisesHaveCorrectAnswerAsync(child.Id, lessonId))
         {
-            var (_, unitDone) = await TryFinalizeLessonIfNeeded(child, lessonId);
+            var (_, unitDone, signal) = await TryFinalizeLessonIfNeeded(child, lessonId);
             await unitOfWork.SaveChanges();
-            EnqueueAdaptiveIfUnitCompleted(child.Id, exercise.Lesson.UnitId, unitDone);
+            await PublishNotificationsAsync(signal);
+            EnqueueUnitCompletionFollowUp(child.Id, exercise.Lesson.UnitId, unitDone);
             throw new InvalidOperationException("Lesson already completed.");
         }
 
         var nextRequired = await GetNextExerciseIdRequiringFirstCorrect(child.Id, lessonId);
         if (nextRequired is null)
         {
-            var (_, unitDone) = await TryFinalizeLessonIfNeeded(child, lessonId);
+            var (_, unitDone, signal) = await TryFinalizeLessonIfNeeded(child, lessonId);
             await unitOfWork.SaveChanges();
-            EnqueueAdaptiveIfUnitCompleted(child.Id, exercise.Lesson.UnitId, unitDone);
+            await PublishNotificationsAsync(signal);
+            EnqueueUnitCompletionFollowUp(child.Id, exercise.Lesson.UnitId, unitDone);
             throw new InvalidOperationException("Lesson already completed.");
         }
 
@@ -85,15 +88,18 @@ public class LearningService(
 
         var lessonJustCompleted = false;
         var unitNewlyCompleted = false;
+        List<Notification> lessonSignal = [];
         if (await learningRepository.AllLessonExercisesHaveCorrectAnswerAsync(child.Id, lessonId))
         {
             var r = await TryFinalizeLessonIfNeeded(child, lessonId);
             lessonJustCompleted = r.LessonFinalized;
             unitNewlyCompleted = r.UnitNewlyCompleted;
+            lessonSignal = r.Notifications;
         }
 
         await unitOfWork.SaveChanges();
-        EnqueueAdaptiveIfUnitCompleted(child.Id, exercise.Lesson.UnitId, unitNewlyCompleted);
+        await PublishNotificationsAsync(lessonSignal);
+        EnqueueUnitCompletionFollowUp(child.Id, exercise.Lesson.UnitId, unitNewlyCompleted);
 
         return new ExerciseSubmitResponse(result.Id, result.IsCorrect, result.TimeTakenMs, result.SubmittedAt, lessonJustCompleted);
     }
@@ -116,9 +122,10 @@ public class LearningService(
         if (!await learningRepository.AllLessonExercisesHaveCorrectAnswerAsync(childId, lessonId))
             throw new InvalidOperationException("Answer all exercises correctly first.");
 
-        var (_, unitDone) = await TryFinalizeLessonIfNeeded(child, lessonId);
+        var (_, unitDone, signal) = await TryFinalizeLessonIfNeeded(child, lessonId);
         await unitOfWork.SaveChanges();
-        EnqueueAdaptiveIfUnitCompleted(childId, lesson.UnitId, unitDone);
+        await PublishNotificationsAsync(signal);
+        EnqueueUnitCompletionFollowUp(childId, lesson.UnitId, unitDone);
 
         child = await childRepository.GetById(childId) ?? throw new KeyNotFoundException("Child not found.");
         return new { ChildId = childId, child!.XpTotal, child.CurrentLevel, child.StreakCurrent };
@@ -137,9 +144,10 @@ public class LearningService(
         if (await learningRepository.CountExercises(lessonId) == 0)
             throw new InvalidOperationException("This lesson has no exercises.");
 
-        var (_, unitDone) = await TryFinalizeLessonIfNeeded(child, lessonId);
+        var (_, unitDone, signal) = await TryFinalizeLessonIfNeeded(child, lessonId);
         await unitOfWork.SaveChanges();
-        EnqueueAdaptiveIfUnitCompleted(childId, lesson.UnitId, unitDone);
+        await PublishNotificationsAsync(signal);
+        EnqueueUnitCompletionFollowUp(childId, lesson.UnitId, unitDone);
 
         var progress = await learningRepository.GetProgress(childId, lessonId);
         var allCorrect = await learningRepository.AllLessonExercisesHaveCorrectAnswerAsync(childId, lessonId);
@@ -152,11 +160,11 @@ public class LearningService(
         return new LessonResumeResponse(next, completed);
     }
 
-    /// <returns>Завершение урока впервые; юнит впервые отмечен завершённым (все уроки юнита пройдены).</returns>
-    private async Task<(bool LessonFinalized, bool UnitNewlyCompleted)> TryFinalizeLessonIfNeeded(Child child, Guid lessonId)
+    /// <returns>Завершение урока впервые; юнит впервые завершён; уведомления для SignalR после SaveChanges.</returns>
+    private async Task<(bool LessonFinalized, bool UnitNewlyCompleted, List<Notification> Notifications)> TryFinalizeLessonIfNeeded(Child child, Guid lessonId)
     {
         if (!await learningRepository.AllLessonExercisesHaveCorrectAnswerAsync(child.Id, lessonId))
-            return (false, false);
+            return (false, false, []);
 
         var lesson = await curriculumRepository.GetLesson(lessonId) ?? throw new KeyNotFoundException("Lesson not found.");
         var progress = await learningRepository.GetProgress(child.Id, lessonId);
@@ -167,16 +175,22 @@ public class LearningService(
         }
 
         if (progress.Status == LessonProgressStatus.Completed)
-            return (false, false);
+            return (false, false, []);
 
         progress.Status = LessonProgressStatus.Completed;
         progress.XpAwarded = lesson.XpReward;
         progress.CompletedAt = DateTime.UtcNow;
+
+        var xpBefore = child.XpTotal;
         child.XpTotal += lesson.XpReward;
-        child.CurrentLevel = CalculateLevel(child.XpTotal);
+        var oldLevel = CalculateLevel(xpBefore);
+        var newLevel = CalculateLevel(child.XpTotal);
+        child.CurrentLevel = newLevel;
         UpdateStreak(child);
 
-        var notification = new Notification
+        var signal = new List<Notification>();
+
+        var lessonNotification = new Notification
         {
             ParentId = child.ParentId,
             ChildId = child.Id,
@@ -184,18 +198,54 @@ public class LearningService(
             Title = "Lesson completed",
             Body = $"{child.DisplayName} completed {lesson.Title} and earned {lesson.XpReward} XP."
         };
-        await notificationRepository.Add(notification);
+        await notificationRepository.Add(lessonNotification);
+        signal.Add(lessonNotification);
+
+        if (newLevel > oldLevel)
+        {
+            var levelNotification = new Notification
+            {
+                ParentId = child.ParentId,
+                ChildId = child.Id,
+                Type = NotificationType.LevelUp,
+                Title = "Level up",
+                Body = $"{child.DisplayName} reached level {newLevel}."
+            };
+            await notificationRepository.Add(levelNotification);
+            signal.Add(levelNotification);
+        }
 
         var unitNew = await TryMarkChildUnitCompletedIfNeeded(child, lesson.UnitId);
+        if (unitNew)
+        {
+            var unit = await curriculumRepository.GetUnit(lesson.UnitId);
+            var unitTitle = unit?.Title ?? "Unit";
+            var unitNotification = new Notification
+            {
+                ParentId = child.ParentId,
+                ChildId = child.Id,
+                Type = NotificationType.UnitCompleted,
+                Title = "Unit completed",
+                Body = $"{child.DisplayName} completed all lessons in unit \"{unitTitle}\"."
+            };
+            await notificationRepository.Add(unitNotification);
+            signal.Add(unitNotification);
+        }
 
-        return (true, unitNew);
+        return (true, unitNew, signal);
     }
 
-    private void EnqueueAdaptiveIfUnitCompleted(Guid childId, Guid unitId, bool unitNewlyCompleted)
+    private async Task PublishNotificationsAsync(IReadOnlyList<Notification> notifications)
+    {
+        foreach (var n in notifications)
+            await notificationPublisher.PublishSavedAsync(n);
+    }
+
+    private void EnqueueUnitCompletionFollowUp(Guid childId, Guid unitId, bool unitNewlyCompleted)
     {
         if (!unitNewlyCompleted)
             return;
-        backgroundJobs.Enqueue<AdaptiveDifficultyJob>(j => j.EvaluateCompletedUnitAsync(childId, unitId));
+        backgroundJobs.Enqueue<UnitCompletionFollowUpJob>(j => j.RunAsync(childId, unitId));
     }
 
     /// <summary>Когда все опубликованные уроки юнита завершены — фиксируем статус прохождения юнита (E1).</summary>
