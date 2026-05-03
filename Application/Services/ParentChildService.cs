@@ -26,9 +26,12 @@ public class ParentChildService(
     public async Task<PagedResponse<ChildResponse>> GetParentChildren(Guid parentId, QueryOptions query)
     {
         var page = await childRepository.GetByParent(parentId, query);
+        var items = new List<ChildResponse>();
+        foreach (var child in page.Items)
+            items.Add(await BuildChildResponseAsync(child));
         return new PagedResponse<ChildResponse>
         {
-            Items = page.Items.Select(ToResponse).ToList(),
+            Items = items,
             Total = page.Total,
             Page = page.Page,
             PageSize = page.PageSize,
@@ -55,13 +58,13 @@ public class ParentChildService(
             await LogAdminWrite(adminActorId.Value, "create", "child", child.Id.ToString());
         await unitOfWork.SaveChanges();
         var loaded = await childRepository.GetById(child.Id) ?? throw new InvalidOperationException("Child not found after create.");
-        return ToResponse(loaded);
+        return await BuildChildResponseAsync(loaded);
     }
 
     public async Task<ChildResponse> GetChild(Guid id)
     {
         var child = await childRepository.GetById(id) ?? throw new KeyNotFoundException("Child not found.");
-        return ToResponse(child);
+        return await BuildChildResponseAsync(child);
     }
 
     public async Task<ChildResponse> UpdateChild(Guid id, UpdateChildRequest request, Guid? adminActorId = null)
@@ -82,13 +85,16 @@ public class ParentChildService(
             await LogAdminWrite(adminActorId.Value, "update", "child", id.ToString());
         await unitOfWork.SaveChanges();
         var reloaded = await childRepository.GetById(id) ?? throw new KeyNotFoundException("Child not found.");
-        return ToResponse(reloaded);
+        return await BuildChildResponseAsync(reloaded);
     }
 
-    private static ChildResponse ToResponse(Child child)
+    private async Task<ChildResponse> BuildChildResponseAsync(Child child)
     {
         if (child.CurrentProgram is null)
             throw new InvalidOperationException("Child.CurrentProgram must be loaded.");
+
+        var (percent, currentUnitId) = await ComputeCurrentUnitProgressAsync(child);
+
         return new ChildResponse(
             child.Id,
             child.ParentId,
@@ -103,7 +109,36 @@ public class ParentChildService(
             child.LastActivityDate,
             child.CreatedAt,
             child.CurrentProgramId,
-            child.CurrentProgram.DifficultyTrack);
+            child.CurrentProgram.DifficultyTrack,
+            percent,
+            currentUnitId);
+    }
+
+    private async Task<(int Percent, Guid? CurrentUnitId)> ComputeCurrentUnitProgressAsync(Child child)
+    {
+        var unitsPage = await curriculumRepository.GetUnits(
+            new UnitQueryOptions { ProgramId = child.CurrentProgramId, Page = 1, PageSize = 500 },
+            restrictToPublishedCatalog: true);
+        var units = unitsPage.Items.OrderBy(u => u.OrderIndex).ToList();
+
+        Guid? lastUnitWithLessons = null;
+        foreach (var unit in units)
+        {
+            var total = await curriculumRepository.CountPublishedLessonsInUnit(unit.Id);
+            if (total == 0) continue;
+            lastUnitWithLessons = unit.Id;
+            var completed = await learningRepository.CountCompletedPublishedLessonsInUnitAsync(child.Id, unit.Id);
+            if (completed < total)
+            {
+                var percent = (int)Math.Round(100.0 * completed / total);
+                return (percent, unit.Id);
+            }
+        }
+
+        if (lastUnitWithLessons.HasValue)
+            return (100, lastUnitWithLessons);
+
+        return (0, null);
     }
 
     public async Task DeleteChild(Guid id, Guid? adminActorId = null)

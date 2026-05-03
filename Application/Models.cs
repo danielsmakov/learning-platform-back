@@ -24,7 +24,14 @@ public record UpdateChildRequest(
     string DisplayName,
     ProgramDifficultyTrack? LearningProgramTrack = null);
 
-/// <summary>Данные ребёнка для API (без секретов); включает дорожку программы (D3).</summary>
+/// <summary>
+/// Данные ребёнка для API (без секретов); включает дорожку программы.
+/// <para><b>CurrentUnitProgressPercent</b> — доля завершённых уроков в «текущем» юните:
+/// число уроков со статусом Completed среди опубликованных уроков этого юнита, делённое на число всех опубликованных уроков юнита, ×100, округление до целого (0–100).
+/// Текущий юнит — первый по порядку (<c>OrderIndex</c>) опубликованный юнит программы ребёнка, в котором есть хотя бы один незавершённый опубликованный урок;
+/// если все такие уроки во всех юнитах завершены — берётся последний юнит программы, где есть опубликованные уроки, процент 100.
+/// В программе без опубликованных уроков: 0 и <see cref="CurrentUnitId"/> = null.</para>
+/// </summary>
 public record ChildResponse(
     Guid Id,
     Guid ParentId,
@@ -39,7 +46,9 @@ public record ChildResponse(
     DateOnly? LastActivityDate,
     DateTime CreatedAt,
     Guid CurrentProgramId,
-    ProgramDifficultyTrack LearningProgramTrack);
+    ProgramDifficultyTrack LearningProgramTrack,
+    int CurrentUnitProgressPercent,
+    Guid? CurrentUnitId);
 
 public record CreateLearningProgramRequest(ProgramDifficultyTrack DifficultyTrack, string Title, string Description, bool IsPublished);
 public record UpdateLearningProgramRequest(string Title, string Description, bool IsPublished);

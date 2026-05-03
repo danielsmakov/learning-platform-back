@@ -106,6 +106,9 @@ public class CurriculumRepository(AppDbContext db) : ICurriculumRepository
         return q.OrderBy(x => x.OrderIndex).ToPagedResponse(query);
     }
 
+    public Task<int> CountPublishedLessonsInUnit(Guid unitId) =>
+        db.Lessons.CountAsync(l => l.UnitId == unitId && l.IsPublished);
+
     public Task<Lesson?> GetLesson(Guid id) =>
         db.Lessons.Include(x => x.Unit).FirstOrDefaultAsync(x => x.Id == id);
     public Task AddLesson(Lesson lesson) => db.Lessons.AddAsync(lesson).AsTask();
@@ -147,6 +150,13 @@ public class LearningRepository(AppDbContext db) : ILearningRepository
 
         return true;
     }
+
+    public Task<int> CountCompletedPublishedLessonsInUnitAsync(Guid childId, Guid unitId) =>
+        db.ChildLessonProgresses.CountAsync(p =>
+            p.ChildId == childId &&
+            p.Status == LessonProgressStatus.Completed &&
+            db.Lessons.Any(l => l.Id == p.LessonId && l.UnitId == unitId && l.IsPublished));
+
     public Task<int> CountDistinctSubmitted(Guid childId, List<Guid> exerciseIds) => db.ExerciseResults.Where(x => x.ChildId == childId && exerciseIds.Contains(x.ExerciseId)).Select(x => x.ExerciseId).Distinct().CountAsync();
     public Task<ChildLessonProgress?> GetProgress(Guid childId, Guid lessonId) => db.ChildLessonProgresses.FirstOrDefaultAsync(x => x.ChildId == childId && x.LessonId == lessonId);
     public Task AddProgress(ChildLessonProgress progress) => db.ChildLessonProgresses.AddAsync(progress).AsTask();
