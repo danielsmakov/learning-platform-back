@@ -84,6 +84,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(config.GetConnectionString("DefaultConnection")));
+builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -228,6 +229,7 @@ app.UseRateLimiter();
 
 app.MapControllers();
 app.MapHub<ParentNotificationHub>("/hubs/parent-notifications");
+app.MapHealthChecks("/health");
 
 using (var scope = app.Services.CreateScope())
 {

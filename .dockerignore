@@ -1,0 +1,17 @@
+**/.git
+**/.github
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/*.user
+.env
+.env.*
+**/Scripts/
+postman/
+**/TestResults/
+**/coverage/
+**/publish/
+**/out/
+**/Thumbs.db
+**/.DS_Store
