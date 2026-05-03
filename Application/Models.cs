@@ -55,8 +55,8 @@ public record UpdateLearningProgramRequest(string Title, string Description, boo
 
 public record CreateUnitRequest(Guid ProgramId, string Title, string Description, int OrderIndex, bool IsPublished);
 public record UpdateUnitRequest(string Title, string Description, int OrderIndex, bool IsPublished, Guid? ProgramId = null);
-public record CreateLessonRequest(Guid UnitId, string Title, int OrderIndex, LessonType LessonType, Difficulty Difficulty, int XpReward, bool IsPublished);
-public record UpdateLessonRequest(string Title, int OrderIndex, LessonType LessonType, Difficulty Difficulty, int XpReward, bool IsPublished);
+public record CreateLessonRequest(Guid UnitId, string Title, string Description, int OrderIndex, LessonType LessonType, Difficulty Difficulty, int XpReward, bool IsPublished);
+public record UpdateLessonRequest(string Title, string Description, int OrderIndex, LessonType LessonType, Difficulty Difficulty, int XpReward, bool IsPublished);
 public record CreateExerciseRequest(LessonType ExerciseType, int OrderIndex, string Content);
 public record UpdateExerciseRequest(LessonType ExerciseType, int OrderIndex, string Content);
 
@@ -66,6 +66,7 @@ public record LessonResumeResponse(Guid? NextExerciseId, bool IsLessonCompleted)
 public record ExerciseSubmitResponse(Guid ResultId, bool IsCorrect, int TimeTakenMs, DateTime SubmittedAt, bool LessonJustCompleted);
 public record MarkNotificationsReadRequest(List<Guid> NotificationIds);
 
+/// <summary>H1: пагинация списков (в query: <c>page</c>, <c>pageSize</c> — регистронезависимо).</summary>
 public class QueryOptions
 {
     public int Page { get; set; } = 1;
@@ -90,6 +91,8 @@ public class LessonQueryOptions : QueryOptions
     public LessonType? LessonType { get; set; }
     public Difficulty? Difficulty { get; set; }
     public bool? IsPublished { get; set; }
+    /// <summary>H2: подстрока в Title или Description урока (без учёта регистра); только Admin.</summary>
+    public string? Search { get; set; }
 }
 
 public class LeaderboardQueryOptions : QueryOptions
@@ -148,12 +151,3 @@ public record CurriculumMapNextDto(
     string Summary,
     Guid? NextLessonId,
     Guid? NextUnitId);
-
-public class PagedResponse<T>
-{
-    public IReadOnlyCollection<T> Items { get; init; } = [];
-    public int Total { get; init; }
-    public int Page { get; init; }
-    public int PageSize { get; init; }
-    public int TotalPages { get; init; }
-}
