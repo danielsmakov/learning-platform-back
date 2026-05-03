@@ -44,6 +44,7 @@ public class ChildRepository(AppDbContext db) : IChildRepository
     public Task<bool> IsOwner(Guid parentId, Guid childId) => db.Children.AnyAsync(x => x.Id == childId && x.ParentId == parentId);
     public Task<PagedResponse<Child>> GetByParent(Guid parentId, QueryOptions query) =>
         db.Children.Include(x => x.CurrentProgram).Where(x => x.ParentId == parentId).OrderBy(x => x.Name).ToPagedResponse(query);
+    public Task<List<Guid>> GetAllChildIdsAsync() => db.Children.Select(x => x.Id).ToListAsync();
     public Task<int> CountAll() => db.Children.CountAsync();
     public Task<List<Guid>> DistinctParentIds() => db.Children.Select(x => x.ParentId).Distinct().ToListAsync();
     public Task<List<Child>> GetNotActiveToday(DateOnly today) => db.Children.Where(c => c.LastActivityDate != today).ToListAsync();
@@ -206,6 +207,8 @@ public class BadgeRepository(AppDbContext db) : IBadgeRepository
 {
     public Task<List<Badge>> GetAll() => db.Badges.ToListAsync();
     public Task<bool> Any() => db.Badges.AnyAsync();
+    public Task<Badge?> GetByKey(string key) => db.Badges.FirstOrDefaultAsync(x => x.Key == key);
+    public Task Add(Badge badge) => db.Badges.AddAsync(badge).AsTask();
     public Task AddRange(params Badge[] badges) => db.Badges.AddRangeAsync(badges);
     public Task<List<Guid>> GetEarnedBadgeIds(Guid childId) => db.ChildBadges.Where(x => x.ChildId == childId).Select(x => x.BadgeId).ToListAsync();
     public Task AddChildBadge(ChildBadge childBadge) => db.ChildBadges.AddAsync(childBadge).AsTask();
