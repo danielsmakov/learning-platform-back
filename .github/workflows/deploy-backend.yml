@@ -1,3 +1,5 @@
+# SSH: repository secret SSH_PRIVATE_KEY (рекомендуется) **или** SSH_PASSWORD (логин по паролю).
+# Для пароля на VPS в sshd должно быть PasswordAuthentication yes (перезапуск sshd после правки).
 name: Deploy backend (manual)
 
 on:
@@ -44,6 +46,7 @@ jobs:
           host: ${{ vars.DEPLOY_HOST }}
           username: ${{ vars.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          password: ${{ secrets.SSH_PASSWORD }}
           script: mkdir -p /opt/learningplatform/backend
 
       - name: Upload docker-compose.yml
@@ -52,6 +55,7 @@ jobs:
           host: ${{ vars.DEPLOY_HOST }}
           username: ${{ vars.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          password: ${{ secrets.SSH_PASSWORD }}
           source: docker-compose.yml
           target: /opt/learningplatform/backend/
 
@@ -65,6 +69,7 @@ jobs:
           host: ${{ vars.DEPLOY_HOST }}
           username: ${{ vars.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          password: ${{ secrets.SSH_PASSWORD }}
           envs: BACKEND_IMAGE,GHCR_PULL_TOKEN,GITHUB_ACTOR_REF
           script: |
             set -eu
