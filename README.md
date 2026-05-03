@@ -48,6 +48,24 @@ ASP.NET Core 9, PostgreSQL, JWT, Hangfire, SignalR.
 
 **Не логируйте** полный URL negotiate/WebSocket с `access_token` в query (утечка в access-logs, скриншоты, Sentry). Для отладки маскируйте query или логируйте только path.
 
+## RBAC: родитель, ребёнок, админ (H3)
+
+Краткая матрица после появления карты куррикулума, SignalR и новых GET каталога.
+
+| Область | Parent | Child | Admin | Без JWT |
+|--------|--------|-------|-------|---------|
+| `GET …/children/...`, карта, прогресс, бейджи ребёнка | только свои дети (`RequireChildAccess`) | только **свой** `childId` = id из токена | любой ребёнок | 401 |
+| Каталог `GET /units`, `/units/{id}`, `/lessons`, `/lessons/{id}`, упражнения | `childId` (свой ребёнок) или явный `programId` | только программа из профиля ребёнка | явный `programId` | обязателен `programId` |
+| `all=true` (черновики каталога) | запрещено | запрещено | разрешено | запрещено |
+| CRUD программ, юнитов, уроков, упражнений | только Admin | 403 | да | 401 |
+| `POST …/exercises/…/submit`, resume, complete lesson | через `RequireChildAccess` | свой ребёнок | да | 401 |
+| `GET/POST …/notifications` | да (`ParentId` = из JWT) | **нет** (роль не Parent) | **нет** (см. ниже) | 401 |
+| SignalR `/hubs/parent-notifications` | да | нет (политика роли) | нет | нет |
+
+Уведомления в REST **только для родителя**: записи в `Notifications` всегда с `ParentId` родителя; админский JWT не подставляется как родитель.
+
+Коды отказов: см. A6 в OpenAPI (`403` / `401` / `422`).
+
 ## REST
 
 Контракты и описание SignalR вынесены в **OpenAPI** (`/api/docs` → Swagger v1). Примеры каталога с `Accept-Language`: `examples/catalog-client.http`.

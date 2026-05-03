@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 namespace LearningPlatform.Application.Services;
 
 /// <summary>
-/// H3: только роль Parent и валидный JWT; группа SignalR = <c>parentId</c> (для push уведомлений).
+/// H3: только роль Parent и валидный JWT (ребёнок и админ не подключаются); группа = <c>parentId</c> из токена.
 /// Клиент: G5 — negotiate (HTTP) затем WebSocket; токен в query <c>access_token</c> или <c>Authorization: Bearer</c> (см. Program.cs и README.md).
 /// Событие входящих сообщений: <see cref="ParentNotificationPublisher.HubEventName"/> (<c>notification</c>); контракт SignalR — в тексте OpenAPI (Swagger) API v1.
 /// </summary>

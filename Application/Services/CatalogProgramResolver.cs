@@ -5,7 +5,7 @@ using LearningPlatform.Infrastructure.Repositories;
 namespace LearningPlatform.Application.Services;
 
 /// <summary>
-/// Определяет ProgramId для выдачи каталога (D4/H3):
+/// Определяет ProgramId для выдачи каталога (D4 / H3 повторение):
 /// <list type="bullet">
 /// <item><description><b>Admin</b> — только явный <c>programId</c> (через query).</description></item>
 /// <item><description><b>Child</b> — всегда <see cref="Child.CurrentProgramId"/> из профиля; параметры programId/childId из запроса не подменяют дорожку.</description></item>

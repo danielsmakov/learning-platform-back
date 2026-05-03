@@ -5,6 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LearningPlatform.Controllers;
 
+/// <summary>
+/// H3: список/создание детей — Parent или Admin (родитель не чужой <c>parentId</c>); чтение/карта/прогресс —
+/// <see cref="AuthGuard.RequireChildAccess"/> (родитель — только свои дети, ребёнок — только свой id, админ — любой ребёнок).
+/// </summary>
 [ApiController]
 [Authorize]
 [Route("api/v1/children")]
