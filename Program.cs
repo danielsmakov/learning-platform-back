@@ -51,8 +51,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             OnMessageReceived = context =>
             {
                 var path = context.HttpContext.Request.Path;
-                if (path.StartsWithSegments("/hubs") && !string.IsNullOrEmpty(context.Request.Query["access_token"]))
+                if (!path.StartsWithSegments("/hubs"))
+                    return Task.CompletedTask;
+                if (!string.IsNullOrEmpty(context.Request.Query["access_token"]))
                     context.Token = context.Request.Query["access_token"];
+                else if (context.Request.Headers.TryGetValue("Authorization", out var auth) &&
+                         auth.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    context.Token = auth.ToString()["Bearer ".Length..].Trim();
                 return Task.CompletedTask;
             }
         };
@@ -95,8 +100,10 @@ builder.Services.AddScoped<CurriculumService>();
 builder.Services.AddScoped<LearningService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<AdminService>();
+builder.Services.AddScoped<IParentNotificationPublisher, ParentNotificationPublisher>();
 builder.Services.AddScoped<BadgeEvaluationJob>();
 builder.Services.AddScoped<AdaptiveDifficultyJob>();
+builder.Services.AddScoped<UnitCompletionFollowUpJob>();
 builder.Services.AddScoped<StartupSeeder>();
 
 var app = builder.Build();
@@ -125,7 +132,7 @@ using (var scope = app.Services.CreateScope())
     recurringJobManager.AddOrUpdate<NotificationService>(
         "streak-reminders",
         s => s.CreateDailyStreakReminders(),
-        "0 23 * * *");
+        "0 18 * * *");
     recurringJobManager.AddOrUpdate<NotificationService>(
         "weekly-summary",
         s => s.CreateWeeklySummaries(),
@@ -134,6 +141,10 @@ using (var scope = app.Services.CreateScope())
         "adaptive-difficulty-scheduled",
         j => j.ProcessScheduledCompletedUnitsAsync(),
         "*/15 * * * *");
+    recurringJobManager.AddOrUpdate<BadgeEvaluationJob>(
+        "badge-evaluation-all-children",
+        j => j.EvaluateAllChildrenAsync(),
+        "0 2 * * *");
 }
 
 app.Run();

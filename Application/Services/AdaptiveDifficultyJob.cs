@@ -2,7 +2,6 @@ using Hangfire;
 using LearningPlatform.Application;
 using LearningPlatform.Domain;
 using LearningPlatform.Infrastructure.Repositories;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 
 namespace LearningPlatform.Application.Services;
@@ -15,7 +14,7 @@ public class AdaptiveDifficultyJob(
     ICurriculumRepository curriculumRepository,
     INotificationRepository notificationRepository,
     IUnitOfWork unitOfWork,
-    IHubContext<ParentNotificationHub> hubContext)
+    IParentNotificationPublisher notificationPublisher)
 {
     private AdaptiveErrorsOptions Options => optionsAccessor.Value;
 
@@ -98,15 +97,7 @@ public class AdaptiveDifficultyJob(
         await notificationRepository.Add(notification);
         await unitOfWork.SaveChanges();
 
-        await hubContext.Clients.Group(child.ParentId.ToString("D")).SendAsync("notification", new
-        {
-            notification.Id,
-            notification.Type,
-            notification.Title,
-            notification.Body,
-            notification.ChildId,
-            notification.CreatedAt
-        });
+        await notificationPublisher.PublishSavedAsync(notification);
     }
 
     private ProgramDifficultyTrack? DecideTargetTrack(ProgramDifficultyTrack current, int errors)
