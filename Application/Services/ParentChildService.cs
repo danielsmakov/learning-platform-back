@@ -22,9 +22,20 @@ public class ParentChildService(
         return parent;
     }
 
-    public Task<PagedResponse<Child>> GetParentChildren(Guid parentId, QueryOptions query) => childRepository.GetByParent(parentId, query);
+    public async Task<PagedResponse<ChildResponse>> GetParentChildren(Guid parentId, QueryOptions query)
+    {
+        var page = await childRepository.GetByParent(parentId, query);
+        return new PagedResponse<ChildResponse>
+        {
+            Items = page.Items.Select(ToResponse).ToList(),
+            Total = page.Total,
+            Page = page.Page,
+            PageSize = page.PageSize,
+            TotalPages = page.TotalPages
+        };
+    }
 
-    public async Task<Child> CreateChild(CreateChildRequest request)
+    public async Task<ChildResponse> CreateChild(CreateChildRequest request)
     {
         var program = await curriculumRepository.GetProgramByTrack(request.LearningProgramTrack)
             ?? throw new KeyNotFoundException("Program for selected level not found.");
@@ -40,20 +51,54 @@ public class ParentChildService(
         };
         await childRepository.Add(child);
         await unitOfWork.SaveChanges();
-        return child;
+        var loaded = await childRepository.GetById(child.Id) ?? throw new InvalidOperationException("Child not found after create.");
+        return ToResponse(loaded);
     }
 
-    public async Task<Child> GetChild(Guid id) => await childRepository.GetById(id) ?? throw new KeyNotFoundException("Child not found.");
+    public async Task<ChildResponse> GetChild(Guid id)
+    {
+        var child = await childRepository.GetById(id) ?? throw new KeyNotFoundException("Child not found.");
+        return ToResponse(child);
+    }
 
-    public async Task<Child> UpdateChild(Guid id, UpdateChildRequest request)
+    public async Task<ChildResponse> UpdateChild(Guid id, UpdateChildRequest request)
     {
         var child = await childRepository.GetById(id) ?? throw new KeyNotFoundException("Child not found.");
         child.Name = request.Name;
         child.Age = request.Age;
         child.AvatarUrl = request.AvatarUrl;
         child.DisplayName = request.DisplayName;
+        if (request.LearningProgramTrack.HasValue)
+        {
+            var program = await curriculumRepository.GetProgramByTrack(request.LearningProgramTrack.Value)
+                ?? throw new KeyNotFoundException("Program for selected level not found.");
+            child.CurrentProgramId = program.Id;
+        }
+
         await unitOfWork.SaveChanges();
-        return child;
+        var reloaded = await childRepository.GetById(id) ?? throw new KeyNotFoundException("Child not found.");
+        return ToResponse(reloaded);
+    }
+
+    private static ChildResponse ToResponse(Child child)
+    {
+        if (child.CurrentProgram is null)
+            throw new InvalidOperationException("Child.CurrentProgram must be loaded.");
+        return new ChildResponse(
+            child.Id,
+            child.ParentId,
+            child.Name,
+            child.Age,
+            child.AvatarUrl,
+            child.DisplayName,
+            child.CurrentLevel,
+            child.XpTotal,
+            child.StreakCurrent,
+            child.StreakLongest,
+            child.LastActivityDate,
+            child.CreatedAt,
+            child.CurrentProgramId,
+            child.CurrentProgram.DifficultyTrack);
     }
 
     public async Task DeleteChild(Guid id)

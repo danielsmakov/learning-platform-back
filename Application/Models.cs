@@ -17,7 +17,29 @@ public record CreateChildRequest(
     string DisplayName,
     string Pin,
     ProgramDifficultyTrack LearningProgramTrack = ProgramDifficultyTrack.Beginner);
-public record UpdateChildRequest(string Name, int Age, string AvatarUrl, string DisplayName);
+public record UpdateChildRequest(
+    string Name,
+    int Age,
+    string AvatarUrl,
+    string DisplayName,
+    ProgramDifficultyTrack? LearningProgramTrack = null);
+
+/// <summary>Данные ребёнка для API (без секретов); включает дорожку программы (D3).</summary>
+public record ChildResponse(
+    Guid Id,
+    Guid ParentId,
+    string Name,
+    int Age,
+    string AvatarUrl,
+    string DisplayName,
+    int CurrentLevel,
+    int XpTotal,
+    int StreakCurrent,
+    int StreakLongest,
+    DateOnly? LastActivityDate,
+    DateTime CreatedAt,
+    Guid CurrentProgramId,
+    ProgramDifficultyTrack LearningProgramTrack);
 
 public record CreateUnitRequest(Guid ProgramId, string Title, string Description, int OrderIndex, bool IsPublished);
 public record UpdateUnitRequest(string Title, string Description, int OrderIndex, bool IsPublished, Guid? ProgramId = null);
