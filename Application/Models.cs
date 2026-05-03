@@ -66,6 +66,15 @@ public record LessonResumeResponse(Guid? NextExerciseId, bool IsLessonCompleted)
 public record ExerciseSubmitResponse(Guid ResultId, bool IsCorrect, int TimeTakenMs, DateTime SubmittedAt, bool LessonJustCompleted);
 public record MarkNotificationsReadRequest(List<Guid> NotificationIds);
 
+/// <summary>P3 / C5: агрегаты за окно времени [StartUtcInclusive, EndUtcExclusive) для одного ребёнка.</summary>
+public sealed record WeeklyActivityStats(
+    int ExerciseSubmissions,
+    int IncorrectSubmissions,
+    int LessonsCompletedInPeriod,
+    int UnitsCompletedInPeriod,
+    int DistinctLessonsWithSubmissions,
+    int DistinctUnitsTouched);
+
 /// <summary>H1: пагинация списков (в query: <c>page</c>, <c>pageSize</c> — регистронезависимо).</summary>
 public class QueryOptions
 {

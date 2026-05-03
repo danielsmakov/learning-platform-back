@@ -18,7 +18,7 @@ public static class RecurringJobsRegistration
             s => s.CreateDailyStreakReminders(),
             "0 18 * * *");
 
-        // C3: weekly summary → Notifications (тело расширяется в C5)
+        // C3 / C5: weekly summary → Notifications (агрегаты + текст тела)
         recurringJobManager.AddOrUpdate<NotificationService>(
             "weekly-summary",
             s => s.CreateWeeklySummaries(),

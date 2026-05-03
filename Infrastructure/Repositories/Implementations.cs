@@ -48,6 +48,9 @@ public class ChildRepository(AppDbContext db) : IChildRepository
     public Task<int> CountAll() => db.Children.CountAsync();
     public Task<List<Guid>> DistinctParentIds() => db.Children.Select(x => x.ParentId).Distinct().ToListAsync();
     public Task<List<Child>> GetNotActiveToday(DateOnly today) => db.Children.Where(c => c.LastActivityDate != today).ToListAsync();
+
+    public Task<List<Child>> ListChildrenForParentAsync(Guid parentId) =>
+        db.Children.AsNoTracking().Where(x => x.ParentId == parentId).OrderBy(x => x.DisplayName).ToListAsync();
     public async Task<PagedResponse<object>> GetLeaderboard(LeaderboardQueryOptions query)
     {
         var q = db.Children.Where(x => x.Age >= query.MinAge && x.Age <= query.MaxAge)
@@ -217,6 +220,50 @@ public class LearningRepository(AppDbContext db) : ILearningRepository
         return await db.ChildLessonProgresses.AsNoTracking()
             .Where(x => x.ChildId == childId && lessonIds.Contains(x.LessonId))
             .ToDictionaryAsync(x => x.LessonId);
+    }
+
+    public async Task<WeeklyActivityStats> GetWeeklyActivityStatsAsync(Guid childId, DateTime startUtcInclusive, DateTime endUtcExclusive)
+    {
+        var submissions = db.ExerciseResults.AsNoTracking()
+            .Where(x => x.ChildId == childId && x.SubmittedAt >= startUtcInclusive && x.SubmittedAt < endUtcExclusive);
+
+        var exerciseSubmissions = await submissions.CountAsync();
+        var incorrectSubmissions = await submissions.CountAsync(x => !x.IsCorrect);
+
+        var lessonsCompletedInPeriod = await db.ChildLessonProgresses.AsNoTracking().CountAsync(x =>
+            x.ChildId == childId &&
+            x.Status == LessonProgressStatus.Completed &&
+            x.CompletedAt != null &&
+            x.CompletedAt >= startUtcInclusive &&
+            x.CompletedAt < endUtcExclusive);
+
+        var unitsCompletedInPeriod = await db.ChildUnitProgresses.AsNoTracking().CountAsync(x =>
+            x.ChildId == childId &&
+            x.Status == UnitProgressStatus.Completed &&
+            x.CompletedAt != null &&
+            x.CompletedAt >= startUtcInclusive &&
+            x.CompletedAt < endUtcExclusive);
+
+        var distinctLessonsWithSubmissions = await (
+            from r in db.ExerciseResults.AsNoTracking()
+            where r.ChildId == childId && r.SubmittedAt >= startUtcInclusive && r.SubmittedAt < endUtcExclusive
+            join e in db.Exercises.AsNoTracking() on r.ExerciseId equals e.Id
+            select e.LessonId).Distinct().CountAsync();
+
+        var distinctUnitsTouched = await (
+            from r in db.ExerciseResults.AsNoTracking()
+            where r.ChildId == childId && r.SubmittedAt >= startUtcInclusive && r.SubmittedAt < endUtcExclusive
+            join e in db.Exercises.AsNoTracking() on r.ExerciseId equals e.Id
+            join l in db.Lessons.AsNoTracking() on e.LessonId equals l.Id
+            select l.UnitId).Distinct().CountAsync();
+
+        return new WeeklyActivityStats(
+            exerciseSubmissions,
+            incorrectSubmissions,
+            lessonsCompletedInPeriod,
+            unitsCompletedInPeriod,
+            distinctLessonsWithSubmissions,
+            distinctUnitsTouched);
     }
 }
 
