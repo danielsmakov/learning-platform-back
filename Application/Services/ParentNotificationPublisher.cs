@@ -3,17 +3,22 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace LearningPlatform.Application.Services;
 
-/// <summary>G4 / C2: единый push в SignalR после сохранения записи в <see cref="Notification"/>.</summary>
+/// <summary>G4 / C2: push в SignalR только после строки в БД.</summary>
 public interface IParentNotificationPublisher
 {
-    /// <summary>Событие хаба и контракт payload совпадают для всех типов <see cref="NotificationType"/>.</summary>
+    /// <summary>
+    /// P3 / C1: вызывать только после <see cref="Infrastructure.Repositories.INotificationRepository.Add"/> и <see cref="Infrastructure.Repositories.IUnitOfWork.SaveChanges"/>
+    /// — родитель офлайн всё равно увидит уведомление из таблицы <c>Notifications</c>. Метод не пишет в БД.
+    /// </summary>
     Task PublishSavedAsync(Notification notification);
 }
 
+/// <summary>C1: только SignalR; персистентность — на вызывающей стороне.</summary>
 public class ParentNotificationPublisher(IHubContext<ParentNotificationHub> hubContext) : IParentNotificationPublisher
 {
     public const string HubEventName = "notification";
 
+    /// <inheritdoc />
     public Task PublishSavedAsync(Notification notification) =>
         hubContext.Clients.Group(notification.ParentId.ToString("D")).SendAsync(HubEventName, ParentNotificationPayload.From(notification));
 

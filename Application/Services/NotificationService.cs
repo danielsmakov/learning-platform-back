@@ -20,6 +20,7 @@ public class NotificationService(
         await unitOfWork.SaveChanges();
     }
 
+    /// <summary>G4: ежедневное напоминание; C1 — сначала INSERT, затем SignalR.</summary>
     public async Task CreateDailyStreakReminders()
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -44,6 +45,7 @@ public class NotificationService(
             await notificationPublisher.PublishSavedAsync(n);
     }
 
+    /// <summary>P3 / C3 + C5: еженедельное резюме (текст расширяется в C5); C1 — INSERT + SaveChanges до хаба.</summary>
     public async Task CreateWeeklySummaries()
     {
         var parentIds = await childRepository.DistinctParentIds();

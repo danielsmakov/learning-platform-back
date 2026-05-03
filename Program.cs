@@ -4,6 +4,7 @@ using FluentValidation;
 using LearningPlatform;
 using LearningPlatform.Application;
 using LearningPlatform.Application.Services;
+using LearningPlatform.Application.Hangfire;
 using LearningPlatform.Infrastructure;
 using LearningPlatform.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -151,22 +152,7 @@ using (var scope = app.Services.CreateScope())
     var seeder = scope.ServiceProvider.GetRequiredService<StartupSeeder>();
     var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
     await seeder.SeedAsync();
-    recurringJobManager.AddOrUpdate<NotificationService>(
-        "streak-reminders",
-        s => s.CreateDailyStreakReminders(),
-        "0 18 * * *");
-    recurringJobManager.AddOrUpdate<NotificationService>(
-        "weekly-summary",
-        s => s.CreateWeeklySummaries(),
-        "0 12 * * 0");
-    recurringJobManager.AddOrUpdate<AdaptiveDifficultyJob>(
-        "adaptive-difficulty-scheduled",
-        j => j.ProcessScheduledCompletedUnitsAsync(),
-        "*/15 * * * *");
-    recurringJobManager.AddOrUpdate<BadgeEvaluationJob>(
-        "badge-evaluation-all-children",
-        j => j.EvaluateAllChildrenAsync(),
-        "0 2 * * *");
+    RecurringJobsRegistration.RegisterP3C3Jobs(recurringJobManager);
 }
 
 app.Run();
