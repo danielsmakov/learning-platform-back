@@ -98,6 +98,52 @@ public class LeaderboardQueryOptions : QueryOptions
     public int MaxAge { get; set; } = 12;
 }
 
+/// <summary>B1: карта куррикулума ребёнка в текущей программе.</summary>
+public record CurriculumMapResponse(
+    Guid ChildId,
+    Guid ProgramId,
+    ProgramDifficultyTrack LearningProgramTrack,
+    string ProgramTitle,
+    string ProgramDescription,
+    IReadOnlyList<CurriculumMapUnitDto> Units,
+    CurriculumMapNextDto Next);
+
+public record CurriculumMapUnitDto(
+    Guid UnitId,
+    string Title,
+    string Description,
+    int OrderIndex,
+    CurriculumMapUnitStatus Status,
+    IReadOnlyList<CurriculumMapLessonDto> Lessons);
+
+public record CurriculumMapLessonDto(
+    Guid LessonId,
+    string Title,
+    int OrderIndex,
+    CurriculumMapLessonStatus Status);
+
+/// <summary>Юнит заблокирован предыдущими; открыт; все уроки завершены.</summary>
+public enum CurriculumMapUnitStatus
+{
+    Locked = 1,
+    Open = 2,
+    Completed = 3
+}
+
+public enum CurriculumMapLessonStatus
+{
+    Locked = 1,
+    NotStarted = 2,
+    InProgress = 3,
+    Completed = 4
+}
+
+/// <summary>«Что дальше»: следующий урок по порядку в первом незакрытом юните.</summary>
+public record CurriculumMapNextDto(
+    string Summary,
+    Guid? NextLessonId,
+    Guid? NextUnitId);
+
 public class PagedResponse<T>
 {
     public IReadOnlyCollection<T> Items { get; init; } = [];
