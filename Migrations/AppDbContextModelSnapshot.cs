@@ -170,6 +170,43 @@ namespace LearningPlatform.Migrations
                     b.ToTable("ChildBadges");
                 });
 
+            modelBuilder.Entity("LearningPlatform.Domain.ContentTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("FieldName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Locale")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityType", "EntityId", "FieldName", "Locale")
+                        .IsUnique();
+
+                    b.ToTable("ContentTranslations");
+                });
+
             modelBuilder.Entity("LearningPlatform.Domain.ChildLessonProgress", b =>
                 {
                     b.Property<Guid>("Id")
