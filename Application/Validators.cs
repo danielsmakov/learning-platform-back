@@ -1,4 +1,5 @@
 using FluentValidation;
+using LearningPlatform.Domain;
 
 namespace LearningPlatform.Application;
 
@@ -46,6 +47,7 @@ public class CreateChildRequestValidator : AbstractValidator<CreateChildRequest>
         RuleFor(x => x.DisplayName).NotEmpty().MaximumLength(64);
         RuleFor(x => x.Age).InclusiveBetween(3, 14);
         RuleFor(x => x.Pin).NotEmpty().Length(4, 8).Matches("^[0-9]+$");
+        RuleFor(x => x.LearningProgramTrack).IsInEnum();
     }
 }
 
@@ -83,6 +85,7 @@ public class CreateUnitRequestValidator : AbstractValidator<CreateUnitRequest>
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Description).MaximumLength(2000);
         RuleFor(x => x.OrderIndex).GreaterThan(0);
+        RuleFor(x => x.ProgramId).NotEmpty();
     }
 }
 
@@ -93,6 +96,7 @@ public class UpdateUnitRequestValidator : AbstractValidator<UpdateUnitRequest>
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Description).MaximumLength(2000);
         RuleFor(x => x.OrderIndex).GreaterThan(0);
+        RuleFor(x => x.ProgramId).Must(id => !id.HasValue || id.Value != Guid.Empty).WithMessage("ProgramId must be a non-empty GUID when set.");
     }
 }
 

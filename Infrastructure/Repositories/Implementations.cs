@@ -57,7 +57,16 @@ public class ChildRepository(AppDbContext db) : IChildRepository
 
 public class CurriculumRepository(AppDbContext db) : ICurriculumRepository
 {
-    public Task<PagedResponse<Unit>> GetUnits(QueryOptions query) => db.Units.OrderBy(x => x.OrderIndex).ToPagedResponse(query);
+    public Task<LearningProgram?> GetProgram(Guid id) => db.Programs.FirstOrDefaultAsync(x => x.Id == id);
+    public Task<LearningProgram?> GetProgramByTrack(ProgramDifficultyTrack track) => db.Programs.FirstOrDefaultAsync(x => x.DifficultyTrack == track);
+
+    public Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query)
+    {
+        var q = db.Units.AsQueryable();
+        if (query.ProgramId.HasValue) q = q.Where(x => x.ProgramId == query.ProgramId.Value);
+        return q.OrderBy(x => x.OrderIndex).ToPagedResponse(query);
+    }
+
     public Task<Unit?> GetUnit(Guid id) => db.Units.FirstOrDefaultAsync(x => x.Id == id);
     public Task AddUnit(Unit unit) => db.Units.AddAsync(unit).AsTask();
     public Task DeleteUnit(Unit unit) { db.Units.Remove(unit); return Task.CompletedTask; }

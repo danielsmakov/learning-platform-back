@@ -11,7 +11,7 @@ public class CurriculumController(CurriculumService service) : ControllerBase
 {
     [AllowAnonymous]
     [HttpGet("units")]
-    public async Task<IActionResult> ListUnits([FromQuery] QueryOptions query) => Ok(await service.GetUnits(query));
+    public async Task<IActionResult> ListUnits([FromQuery] UnitQueryOptions query) => Ok(await service.GetUnits(query));
 
     [Authorize]
     [HttpPost("units")]

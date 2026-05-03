@@ -35,3 +35,12 @@ public enum NotificationType
     StreakReminder = 2,
     WeeklySummary = 3
 }
+
+/// <summary>Дорожка уровня учебной программы (не путать с <see cref="Difficulty"/> урока).</summary>
+public enum ProgramDifficultyTrack
+{
+    Elementary = 1,
+    Beginner = 2,
+    PreIntermediate = 3,
+    Intermediate = 4
+}

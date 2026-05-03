@@ -9,11 +9,18 @@ public record RefreshRequest(string RefreshToken);
 public record AuthResponse(Guid UserId, string Email, string Role, string AccessToken, string RefreshToken, DateTime ExpiresAt);
 
 public record UpdateParentRequest(string Email);
-public record CreateChildRequest(Guid ParentId, string Name, int Age, string AvatarUrl, string DisplayName, string Pin);
+public record CreateChildRequest(
+    Guid ParentId,
+    string Name,
+    int Age,
+    string AvatarUrl,
+    string DisplayName,
+    string Pin,
+    ProgramDifficultyTrack LearningProgramTrack = ProgramDifficultyTrack.Beginner);
 public record UpdateChildRequest(string Name, int Age, string AvatarUrl, string DisplayName);
 
-public record CreateUnitRequest(string Title, string Description, int OrderIndex, bool IsPublished);
-public record UpdateUnitRequest(string Title, string Description, int OrderIndex, bool IsPublished);
+public record CreateUnitRequest(Guid ProgramId, string Title, string Description, int OrderIndex, bool IsPublished);
+public record UpdateUnitRequest(string Title, string Description, int OrderIndex, bool IsPublished, Guid? ProgramId = null);
 public record CreateLessonRequest(Guid UnitId, string Title, int OrderIndex, LessonType LessonType, Difficulty Difficulty, int XpReward, bool IsPublished);
 public record UpdateLessonRequest(string Title, int OrderIndex, LessonType LessonType, Difficulty Difficulty, int XpReward, bool IsPublished);
 public record CreateExerciseRequest(LessonType ExerciseType, int OrderIndex, string Content);
@@ -27,6 +34,11 @@ public class QueryOptions
 {
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
+}
+
+public class UnitQueryOptions : QueryOptions
+{
+    public Guid? ProgramId { get; set; }
 }
 
 public class LessonQueryOptions : QueryOptions

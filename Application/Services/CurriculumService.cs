@@ -6,12 +6,14 @@ namespace LearningPlatform.Application.Services;
 
 public class CurriculumService(ICurriculumRepository curriculumRepository, IActivityLogRepository activityLogRepository, IUnitOfWork unitOfWork)
 {
-    public Task<PagedResponse<Unit>> GetUnits(QueryOptions query) => curriculumRepository.GetUnits(query);
+    public Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query) => curriculumRepository.GetUnits(query);
 
     public async Task<Unit> CreateUnit(CreateUnitRequest request, Guid adminId)
     {
+        _ = await curriculumRepository.GetProgram(request.ProgramId) ?? throw new KeyNotFoundException("Program not found.");
         var unit = new Unit
         {
+            ProgramId = request.ProgramId,
             Title = request.Title,
             Description = request.Description,
             OrderIndex = request.OrderIndex,
@@ -30,6 +32,11 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         unit.Description = request.Description;
         unit.OrderIndex = request.OrderIndex;
         unit.IsPublished = request.IsPublished;
+        if (request.ProgramId.HasValue)
+        {
+            _ = await curriculumRepository.GetProgram(request.ProgramId.Value) ?? throw new KeyNotFoundException("Program not found.");
+            unit.ProgramId = request.ProgramId.Value;
+        }
         await Log(adminId, "update", "unit", id.ToString());
         await unitOfWork.SaveChanges();
         return unit;

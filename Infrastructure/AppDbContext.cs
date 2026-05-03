@@ -7,6 +7,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Child> Children => Set<Child>();
+    public DbSet<LearningProgram> Programs => Set<LearningProgram>();
     public DbSet<Unit> Units => Set<Unit>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
     public DbSet<Exercise> Exercises => Set<Exercise>();
@@ -22,6 +23,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     {
         modelBuilder.Entity<User>().HasIndex(x => x.Email).IsUnique();
         modelBuilder.Entity<Child>().HasIndex(x => x.ParentId);
+        modelBuilder.Entity<Child>().HasIndex(x => x.CurrentProgramId);
+        modelBuilder.Entity<LearningProgram>().HasIndex(x => x.DifficultyTrack).IsUnique();
+        modelBuilder.Entity<Unit>().HasIndex(x => x.ProgramId);
+        modelBuilder.Entity<Child>().HasOne(x => x.CurrentProgram).WithMany().HasForeignKey(x => x.CurrentProgramId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Unit>().HasOne(x => x.Program).WithMany(x => x.Units).HasForeignKey(x => x.ProgramId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Lesson>().HasIndex(x => new { x.UnitId, x.OrderIndex });
         modelBuilder.Entity<Exercise>().HasIndex(x => new { x.LessonId, x.OrderIndex });
         modelBuilder.Entity<ChildLessonProgress>().HasIndex(x => new { x.ChildId, x.LessonId }).IsUnique();

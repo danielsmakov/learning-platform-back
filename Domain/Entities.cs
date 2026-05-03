@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LearningPlatform.Domain;
 
@@ -27,11 +28,26 @@ public class Child
     public int StreakLongest { get; set; }
     public DateOnly? LastActivityDate { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid CurrentProgramId { get; set; }
+    public LearningProgram? CurrentProgram { get; set; }
+}
+
+[Table("Programs")]
+public class LearningProgram
+{
+    [Key] public Guid Id { get; set; } = Guid.NewGuid();
+    public ProgramDifficultyTrack DifficultyTrack { get; set; }
+    [MaxLength(200)] public string Title { get; set; } = string.Empty;
+    [MaxLength(2000)] public string Description { get; set; } = string.Empty;
+    public bool IsPublished { get; set; } = true;
+    public ICollection<Unit> Units { get; set; } = [];
 }
 
 public class Unit
 {
     [Key] public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ProgramId { get; set; }
+    public LearningProgram? Program { get; set; }
     [MaxLength(200)] public string Title { get; set; } = string.Empty;
     [MaxLength(2000)] public string Description { get; set; } = string.Empty;
     public int OrderIndex { get; set; }

@@ -7,6 +7,7 @@ namespace LearningPlatform.Application.Services;
 public class ParentChildService(
     IUserRepository userRepository,
     IChildRepository childRepository,
+    ICurriculumRepository curriculumRepository,
     ILearningRepository learningRepository,
     IBadgeRepository badgeRepository,
     IUnitOfWork unitOfWork)
@@ -25,6 +26,8 @@ public class ParentChildService(
 
     public async Task<Child> CreateChild(CreateChildRequest request)
     {
+        var program = await curriculumRepository.GetProgramByTrack(request.LearningProgramTrack)
+            ?? throw new KeyNotFoundException("Program for selected level not found.");
         var child = new Child
         {
             ParentId = request.ParentId,
@@ -32,7 +35,8 @@ public class ParentChildService(
             Age = request.Age,
             AvatarUrl = request.AvatarUrl,
             DisplayName = request.DisplayName,
-            PinHash = BCrypt.Net.BCrypt.HashPassword(request.Pin, workFactor: 12)
+            PinHash = BCrypt.Net.BCrypt.HashPassword(request.Pin, workFactor: 12),
+            CurrentProgramId = program.Id
         };
         await childRepository.Add(child);
         await unitOfWork.SaveChanges();
