@@ -62,6 +62,8 @@ public interface ILearningRepository
     Task<int> CountDistinctSubmitted(Guid childId, List<Guid> exerciseIds);
     Task<ChildLessonProgress?> GetProgress(Guid childId, Guid lessonId);
     Task AddProgress(ChildLessonProgress progress);
+    /// <summary>Создаёт строку прогресса по юниту при первом событии (ошибка или завершение юнита), если ещё нет.</summary>
+    Task<ChildUnitProgress> GetOrCreateChildUnitProgress(Guid childId, Guid unitId);
     Task<PagedResponse<ChildLessonProgress>> GetProgressByChild(Guid childId, QueryOptions query);
     Task<int> CountCompletedLessons(Guid childId);
     Task<int> CountCompletedLessonsAll();

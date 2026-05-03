@@ -100,6 +100,22 @@ public class ChildLessonProgress
     public DateTime? CompletedAt { get; set; }
 }
 
+/// <summary>
+/// Ошибки и статус прохождения юнита для пары (ребёнок, юнит). Счётчик не хранится в справочнике <see cref="Unit"/> (E1).
+/// </summary>
+public class ChildUnitProgress
+{
+    [Key] public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ChildId { get; set; }
+    public Child? Child { get; set; }
+    public Guid UnitId { get; set; }
+    public Unit? Unit { get; set; }
+    public int ErrorCount { get; set; }
+    public UnitProgressStatus Status { get; set; } = UnitProgressStatus.NotStarted;
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+}
+
 public class ExerciseResult
 {
     [Key] public Guid Id { get; set; } = Guid.NewGuid();

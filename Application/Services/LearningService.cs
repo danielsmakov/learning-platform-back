@@ -55,6 +55,13 @@ public class LearningService(
         };
         await learningRepository.AddExerciseResult(result);
 
+        var unitId = exercise.Lesson.UnitId;
+        if (!request.IsCorrect && !hadCorrectBefore)
+        {
+            var unitProgress = await learningRepository.GetOrCreateChildUnitProgress(request.ChildId, unitId);
+            unitProgress.ErrorCount += 1;
+        }
+
         var progress = await learningRepository.GetProgress(request.ChildId, lessonId);
         if (progress is null)
         {
@@ -166,7 +173,29 @@ public class LearningService(
             Body = $"{child.DisplayName} completed {lesson.Title} and earned {lesson.XpReward} XP."
         };
         await notificationRepository.Add(notification);
+
+        await TryMarkChildUnitCompletedIfNeeded(child, lesson.UnitId);
+
         return true;
+    }
+
+    /// <summary>Когда все опубликованные уроки юнита завершены — фиксируем статус прохождения юнита (E1).</summary>
+    private async Task TryMarkChildUnitCompletedIfNeeded(Child child, Guid unitId)
+    {
+        var totalPublished = await curriculumRepository.CountPublishedLessonsInUnit(unitId);
+        if (totalPublished == 0)
+            return;
+
+        var completed = await learningRepository.CountCompletedPublishedLessonsInUnitAsync(child.Id, unitId);
+        if (completed < totalPublished)
+            return;
+
+        var unitProgress = await learningRepository.GetOrCreateChildUnitProgress(child.Id, unitId);
+        if (unitProgress.Status == UnitProgressStatus.Completed)
+            return;
+
+        unitProgress.Status = UnitProgressStatus.Completed;
+        unitProgress.CompletedAt = DateTime.UtcNow;
     }
 
     private async Task<Guid?> GetNextExerciseIdRequiringFirstCorrect(Guid childId, Guid lessonId)

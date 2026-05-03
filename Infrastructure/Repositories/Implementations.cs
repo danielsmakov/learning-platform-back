@@ -160,6 +160,23 @@ public class LearningRepository(AppDbContext db) : ILearningRepository
     public Task<int> CountDistinctSubmitted(Guid childId, List<Guid> exerciseIds) => db.ExerciseResults.Where(x => x.ChildId == childId && exerciseIds.Contains(x.ExerciseId)).Select(x => x.ExerciseId).Distinct().CountAsync();
     public Task<ChildLessonProgress?> GetProgress(Guid childId, Guid lessonId) => db.ChildLessonProgresses.FirstOrDefaultAsync(x => x.ChildId == childId && x.LessonId == lessonId);
     public Task AddProgress(ChildLessonProgress progress) => db.ChildLessonProgresses.AddAsync(progress).AsTask();
+
+    public async Task<ChildUnitProgress> GetOrCreateChildUnitProgress(Guid childId, Guid unitId)
+    {
+        var existing = await db.ChildUnitProgresses.FirstOrDefaultAsync(x => x.ChildId == childId && x.UnitId == unitId);
+        if (existing is not null)
+            return existing;
+
+        var row = new ChildUnitProgress
+        {
+            ChildId = childId,
+            UnitId = unitId,
+            Status = UnitProgressStatus.InProgress,
+            StartedAt = DateTime.UtcNow
+        };
+        await db.ChildUnitProgresses.AddAsync(row);
+        return row;
+    }
     public Task<PagedResponse<ChildLessonProgress>> GetProgressByChild(Guid childId, QueryOptions query) => db.ChildLessonProgresses.Where(x => x.ChildId == childId).OrderByDescending(x => x.CompletedAt).ToPagedResponse(query);
     public Task<int> CountCompletedLessons(Guid childId) => db.ChildLessonProgresses.CountAsync(x => x.ChildId == childId && x.Status == LessonProgressStatus.Completed);
     public Task<int> CountCompletedLessonsAll() => db.ChildLessonProgresses.CountAsync(x => x.Status == LessonProgressStatus.Completed);

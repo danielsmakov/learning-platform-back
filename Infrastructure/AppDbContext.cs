@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Lesson> Lessons => Set<Lesson>();
     public DbSet<Exercise> Exercises => Set<Exercise>();
     public DbSet<ChildLessonProgress> ChildLessonProgresses => Set<ChildLessonProgress>();
+    public DbSet<ChildUnitProgress> ChildUnitProgresses => Set<ChildUnitProgress>();
     public DbSet<ExerciseResult> ExerciseResults => Set<ExerciseResult>();
     public DbSet<Badge> Badges => Set<Badge>();
     public DbSet<ChildBadge> ChildBadges => Set<ChildBadge>();
@@ -35,6 +36,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Lesson>().HasIndex(x => new { x.UnitId, x.OrderIndex });
         modelBuilder.Entity<Exercise>().HasIndex(x => new { x.LessonId, x.OrderIndex });
         modelBuilder.Entity<ChildLessonProgress>().HasIndex(x => new { x.ChildId, x.LessonId }).IsUnique();
+        modelBuilder.Entity<ChildUnitProgress>().HasIndex(x => new { x.ChildId, x.UnitId }).IsUnique();
+        modelBuilder.Entity<ChildUnitProgress>().HasOne(x => x.Child).WithMany().HasForeignKey(x => x.ChildId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ChildUnitProgress>().HasOne(x => x.Unit).WithMany().HasForeignKey(x => x.UnitId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<ExerciseResult>().HasIndex(x => x.ChildId);
         modelBuilder.Entity<Notification>().HasIndex(x => new { x.ParentId, x.IsRead });
         modelBuilder.Entity<ActivityLog>().HasIndex(x => x.CreatedAt);
