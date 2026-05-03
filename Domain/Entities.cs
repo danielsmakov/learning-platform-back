@@ -157,6 +157,11 @@ public class ChildBadge
     public DateTime AwardedAt { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>
+/// P3 / C1: любое событие для родителя <b>всегда</b> сначала сохраняется здесь (INSERT + SaveChanges),
+/// затем опционально дублируется в SignalR (<see cref="Application.Services.IParentNotificationPublisher"/>).
+/// Не отправлять только push без строки в этой таблице. SignalR — см. <see cref="LearningPlatform.Application.Services.IParentNotificationPublisher"/>.
+/// </summary>
 public class Notification
 {
     [Key] public Guid Id { get; set; } = Guid.NewGuid();

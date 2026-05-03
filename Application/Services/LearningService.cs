@@ -235,6 +235,7 @@ public class LearningService(
         return (true, unitNew, signal);
     }
 
+    /// <summary>C1: уведомления уже в БД после <see cref="IUnitOfWork.SaveChanges"/> у вызывающего кода.</summary>
     private async Task PublishNotificationsAsync(IReadOnlyList<Notification> notifications)
     {
         foreach (var n in notifications)

@@ -95,6 +95,7 @@ public interface IBadgeRepository
     Task<PagedResponse<object>> GetChildBadges(Guid childId, QueryOptions query);
 }
 
+/// <summary>P3 / C1: каждое родительское уведомление сначала INSERT в таблицу Notifications, затем SaveChanges, затем SignalR.</summary>
 public interface INotificationRepository
 {
     Task Add(Notification notification);
