@@ -69,6 +69,8 @@ public class Lesson
     public Guid UnitId { get; set; }
     public Unit? Unit { get; set; }
     [MaxLength(200)] public string Title { get; set; } = string.Empty;
+    /// <summary>Краткое описание урока (H2: поиск по каталогу для админа).</summary>
+    [MaxLength(2000)] public string Description { get; set; } = string.Empty;
     public int OrderIndex { get; set; }
     public LessonType LessonType { get; set; }
     public Difficulty Difficulty { get; set; } = Difficulty.Easy;

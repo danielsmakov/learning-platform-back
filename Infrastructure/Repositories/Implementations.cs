@@ -104,6 +104,14 @@ public class CurriculumRepository(AppDbContext db) : ICurriculumRepository
             q = q.Where(x => x.IsPublished && x.Unit!.IsPublished);
         else if (query.IsPublished.HasValue)
             q = q.Where(x => x.IsPublished == query.IsPublished.Value);
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var s = query.Search.Trim();
+            if (s.Length > 500) s = s[..500];
+            var lower = s.ToLower();
+            q = q.Where(x => x.Title.ToLower().Contains(lower) || x.Description.ToLower().Contains(lower));
+        }
+
         return q.OrderBy(x => x.OrderIndex).ToPagedResponse(query);
     }
 

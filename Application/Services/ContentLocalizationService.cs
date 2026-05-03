@@ -33,7 +33,10 @@ public class ContentLocalizationService(IContentTranslationRepository translatio
         var ids = lessons.Select(l => l.Id).ToList();
         var rows = await translations.ListAsync(ContentEntityTypes.Lesson, ids);
         foreach (var l in lessons)
+        {
             l.Title = Resolve(l.Title, l.Id, ContentFields.Title, locale, rows);
+            l.Description = Resolve(l.Description, l.Id, ContentFields.Description, locale, rows);
+        }
     }
 
     public async Task ApplyProgramsAsync(IReadOnlyList<LearningProgram> programs, string locale)

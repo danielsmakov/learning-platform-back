@@ -158,6 +158,7 @@ public class CurriculumService(
         {
             UnitId = request.UnitId,
             Title = request.Title,
+            Description = request.Description,
             OrderIndex = request.OrderIndex,
             LessonType = request.LessonType,
             Difficulty = request.Difficulty,
@@ -176,6 +177,7 @@ public class CurriculumService(
         if (lesson.Unit is null || lesson.Unit.ProgramId != programContextId)
             throw new InvalidOperationException("Query programId does not match this lesson's program.");
         lesson.Title = request.Title;
+        lesson.Description = request.Description;
         lesson.OrderIndex = request.OrderIndex;
         lesson.LessonType = request.LessonType;
         lesson.Difficulty = request.Difficulty;
