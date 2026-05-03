@@ -64,6 +64,11 @@ public interface ILearningRepository
     Task AddProgress(ChildLessonProgress progress);
     /// <summary>Создаёт строку прогресса по юниту при первом событии (ошибка или завершение юнита), если ещё нет.</summary>
     Task<ChildUnitProgress> GetOrCreateChildUnitProgress(Guid childId, Guid unitId);
+    Task<ChildUnitProgress?> GetChildUnitProgressAsync(Guid childId, Guid unitId);
+    void RemoveChildUnitProgress(ChildUnitProgress row);
+    Task<List<ChildUnitProgress>> GetCompletedChildUnitProgressRowsAsync();
+    /// <summary>G3: сброс прохождения контента при смене программы (уроки, юниты, попытки).</summary>
+    Task ClearChildLearningProgressAsync(Guid childId);
     Task<PagedResponse<ChildLessonProgress>> GetProgressByChild(Guid childId, QueryOptions query);
     Task<int> CountCompletedLessons(Guid childId);
     Task<int> CountCompletedLessonsAll();
