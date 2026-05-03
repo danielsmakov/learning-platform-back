@@ -44,6 +44,8 @@ public class LearningProgram
     [MaxLength(200)] public string Title { get; set; } = string.Empty;
     [MaxLength(2000)] public string Description { get; set; } = string.Empty;
     public bool IsPublished { get; set; } = true;
+    /// <summary>Ровно одна программа в каталоге помечена как дорожка по умолчанию (миграция D5).</summary>
+    public bool IsDefault { get; set; }
     public ICollection<Unit> Units { get; set; } = [];
 }
 

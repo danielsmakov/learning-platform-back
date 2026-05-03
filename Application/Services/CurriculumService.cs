@@ -19,7 +19,8 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
             DifficultyTrack = request.DifficultyTrack,
             Title = request.Title.Trim(),
             Description = request.Description.Trim(),
-            IsPublished = request.IsPublished
+            IsPublished = request.IsPublished,
+            IsDefault = false
         };
         await curriculumRepository.AddProgram(program);
         await Log(adminId, "create", "program", program.Id.ToString());
