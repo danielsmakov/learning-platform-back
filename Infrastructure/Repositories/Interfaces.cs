@@ -23,6 +23,8 @@ public interface IChildRepository
     Task<int> CountAll();
     Task<List<Guid>> DistinctParentIds();
     Task<List<Child>> GetNotActiveToday(DateOnly today);
+    /// <summary>P3 / C5: все дети родителя (для еженедельного агрегата).</summary>
+    Task<List<Child>> ListChildrenForParentAsync(Guid parentId);
     Task<PagedResponse<object>> GetLeaderboard(LeaderboardQueryOptions query);
 }
 
@@ -76,6 +78,9 @@ public interface ILearningRepository
     Task<int> CountProgressRows();
     /// <summary>Прогресс по списку уроков (для карты куррикулума).</summary>
     Task<Dictionary<Guid, ChildLessonProgress>> GetLessonProgressMapAsync(Guid childId, IReadOnlyCollection<Guid> lessonIds);
+
+    /// <summary>P3 / C5: агрегаты из <see cref="ExerciseResult"/>, <see cref="ChildLessonProgress"/>, <see cref="ChildUnitProgress"/> за интервал UTC.</summary>
+    Task<WeeklyActivityStats> GetWeeklyActivityStatsAsync(Guid childId, DateTime startUtcInclusive, DateTime endUtcExclusive);
 }
 
 public interface IContentTranslationRepository

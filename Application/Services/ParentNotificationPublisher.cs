@@ -3,17 +3,17 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace LearningPlatform.Application.Services;
 
-/// <summary>G4 / C2: push в SignalR только после строки в БД.</summary>
+/// <summary>G4 / C2: доставка в UI после записи в БД.</summary>
 public interface IParentNotificationPublisher
 {
     /// <summary>
-    /// P3 / C1: вызывать только после <see cref="Infrastructure.Repositories.INotificationRepository.Add"/> и <see cref="Infrastructure.Repositories.IUnitOfWork.SaveChanges"/>
-    /// — родитель офлайн всё равно увидит уведомление из таблицы <c>Notifications</c>. Метод не пишет в БД.
+    /// P3 / C1 + C2: вызывать только после <see cref="Infrastructure.Repositories.INotificationRepository.Add"/> и <see cref="Infrastructure.Repositories.IUnitOfWork.SaveChanges"/>.
+    /// Родитель офлайн — история из <c>Notifications</c>; онлайн — тот же payload в хаб <see cref="ParentNotificationHub"/> (группа = <c>parentId</c>), без дублирующего INSERT.
     /// </summary>
     Task PublishSavedAsync(Notification notification);
 }
 
-/// <summary>C1: только SignalR; персистентность — на вызывающей стороне.</summary>
+/// <summary>C1/C2: только SignalR; INSERT и источник истины — БД на вызывающей стороне.</summary>
 public class ParentNotificationPublisher(IHubContext<ParentNotificationHub> hubContext) : IParentNotificationPublisher
 {
     public const string HubEventName = "notification";
