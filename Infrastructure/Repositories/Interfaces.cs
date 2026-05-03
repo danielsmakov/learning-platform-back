@@ -35,15 +35,15 @@ public interface ICurriculumRepository
     Task<int> CountUnitsForProgram(Guid programId);
     Task<int> CountChildrenUsingProgram(Guid programId);
 
-    Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query);
+    Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query, bool restrictToPublishedCatalog = true);
     Task<Unit?> GetUnit(Guid id);
     Task AddUnit(Unit unit);
     Task DeleteUnit(Unit unit);
-    Task<PagedResponse<Lesson>> GetLessons(LessonQueryOptions query);
+    Task<PagedResponse<Lesson>> GetLessons(LessonQueryOptions query, bool restrictToPublishedCatalog = true);
     Task<Lesson?> GetLesson(Guid id);
     Task AddLesson(Lesson lesson);
     Task DeleteLesson(Lesson lesson);
-    Task<PagedResponse<Exercise>> GetExercises(Guid lessonId, QueryOptions query);
+    Task<PagedResponse<Exercise>> GetExercises(Guid lessonId, QueryOptions query, bool restrictToPublishedCatalog = true);
     Task<Exercise?> GetExercise(Guid id);
     Task AddExercise(Exercise exercise);
     Task DeleteExercise(Exercise exercise);
