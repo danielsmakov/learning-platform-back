@@ -8,7 +8,7 @@ namespace LearningPlatform.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/v1/children")]
-public class ChildrenController(ParentChildService service) : ControllerBase
+public class ChildrenController(ParentChildService service, CurriculumMapService curriculumMapService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> ListChildren([FromQuery] Guid parentId, [FromQuery] QueryOptions query)
@@ -72,5 +72,14 @@ public class ChildrenController(ParentChildService service) : ControllerBase
     {
         await AuthGuard.RequireChildAccess(User, service, id);
         return Ok(await service.GetChildBadges(id, query));
+    }
+
+    /// <summary>B1: карта куррикулума ребёнка. B6/G2: строки контента по заголовку Accept-Language (ru/en).</summary>
+    [HttpGet("{id:guid}/curriculum-map")]
+    public async Task<IActionResult> GetCurriculumMap(Guid id, [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
+    {
+        await AuthGuard.RequireChildAccess(User, service, id);
+        var locale = LocalePreference.Parse(acceptLanguage);
+        return Ok(await curriculumMapService.GetMapAsync(id, locale));
     }
 }
