@@ -40,6 +40,7 @@ public interface ICurriculumRepository
     Task AddUnit(Unit unit);
     Task DeleteUnit(Unit unit);
     Task<PagedResponse<Lesson>> GetLessons(LessonQueryOptions query, bool restrictToPublishedCatalog = true);
+    Task<int> CountPublishedLessonsInUnit(Guid unitId);
     Task<Lesson?> GetLesson(Guid id);
     Task AddLesson(Lesson lesson);
     Task DeleteLesson(Lesson lesson);
@@ -57,6 +58,7 @@ public interface ILearningRepository
     /// <summary>Есть ли хотя бы один верный ответ по паре ребёнок / упражнение.</summary>
     Task<bool> HasCorrectAnswerAsync(Guid childId, Guid exerciseId);
     Task<bool> AllLessonExercisesHaveCorrectAnswerAsync(Guid childId, Guid lessonId);
+    Task<int> CountCompletedPublishedLessonsInUnitAsync(Guid childId, Guid unitId);
     Task<int> CountDistinctSubmitted(Guid childId, List<Guid> exerciseIds);
     Task<ChildLessonProgress?> GetProgress(Guid childId, Guid lessonId);
     Task AddProgress(ChildLessonProgress progress);
