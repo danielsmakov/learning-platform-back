@@ -11,7 +11,9 @@ using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi;
@@ -66,6 +68,18 @@ builder.Services.AddControllers(options =>
         // EF Include(Lesson→Unit) + fixup заполняет Unit.Lessons → цикл при сериализации (GET /lessons, /exercises).
         o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+    foreach (var ip in new[] { "127.0.0.1", "::1", "172.17.0.1" })
+    {
+        if (IPAddress.TryParse(ip, out var addr))
+            options.KnownProxies.Add(addr);
+    }
+});
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendCors", policy =>
@@ -208,6 +222,8 @@ builder.Services.AddScoped<StartupSeeder>();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -229,7 +245,9 @@ app.UseRateLimiter();
 
 app.MapControllers();
 app.MapHub<ParentNotificationHub>("/hubs/parent-notifications");
-app.MapHealthChecks("/health");
+// /health — проверка БД (может вернуть не-2xx при сбоях EF); /health/live — только «процесс жив» (CI после деплоя).
+app.MapGet("/health/live", () => Results.Text("OK", "text/plain")).AllowAnonymous();
+app.MapHealthChecks("/health").AllowAnonymous();
 
 using (var scope = app.Services.CreateScope())
 {

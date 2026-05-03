@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.6
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY learning-platform-back.csproj .
@@ -18,7 +18,7 @@ RUN dotnet ef migrations bundle \
     --startup-project learning-platform-back.csproj \
     --runtime linux-x64 \
     --output /bundle/migrate \
-    --self-contained true \
+    --self-contained \
     --force
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
@@ -27,5 +27,21 @@ ENV ASPNETCORE_URLS=http://+:8080
 COPY --from=build /app/publish .
 COPY --from=bundle /bundle/migrate ./migrate
 RUN chmod +x migrate
-# $$ → $ at image build time so the shell sees $ConnectionStrings__DefaultConnection at container start.
-ENTRYPOINT ["/bin/sh", "-c", "set -eu; conn=\"$${ConnectionStrings__DefaultConnection:-}\"; test -n \"$$conn\" || { echo ConnectionStrings__DefaultConnection required >&2; exit 1; }; /app/migrate --connection \"$$conn\"; exec dotnet /app/learning-platform-back.dll"]
+RUN <<'SCRIPT'
+cat > /app/entrypoint.sh <<'EOS'
+#!/bin/sh
+set -eu
+raw=$(printenv ConnectionStrings__DefaultConnection || true)
+test -n "$raw" || { echo "ConnectionStrings__DefaultConnection is unset or empty" >&2; exit 1; }
+cs=$(printf '%s' "$raw" | tr -d '\r')
+cs=$(printf '%s' "$cs" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+cs=${cs#\"}
+cs=${cs%\"}
+test -n "$cs" || { echo "connection string empty after trim/strip quotes" >&2; exit 1; }
+echo "Applying migrations (connection string length ${#cs})" >&2
+/app/migrate --connection "$cs"
+exec dotnet /app/learning-platform-back.dll
+EOS
+chmod +x /app/entrypoint.sh
+SCRIPT
+ENTRYPOINT ["/app/entrypoint.sh"]

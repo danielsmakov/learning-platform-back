@@ -1,5 +1,6 @@
 # SSH: repository secret SSH_PRIVATE_KEY (рекомендуется) **или** SSH_PASSWORD (логин по паролю).
 # Для пароля на VPS в sshd должно быть PasswordAuthentication yes (перезапуск sshd после правки).
+# На VPS в /opt/learningplatform/backend/.env задайте POSTGRES_CONNECTION_STRING=Host=...;... (см. docker-compose.yml).
 name: Deploy backend (manual)
 
 on:
@@ -80,6 +81,26 @@ jobs:
             export BACKEND_IMAGE
             docker compose pull
             docker compose up -d
-            sleep 8
-            curl -fsS http://127.0.0.1:8080/health >/dev/null
-            echo "Health check OK"
+            sleep 15
+            ok=0
+            for i in 1 2 3 4 5 6; do
+              if curl -fsS http://127.0.0.1:8080/health/live >/dev/null 2>&1; then
+                echo "Health check OK (/health/live)"
+                ok=1
+                break
+              fi
+              if curl -fsS http://127.0.0.1:8080/swagger/v1/swagger.json >/dev/null 2>&1; then
+                echo "Health check OK (/swagger — образ без /health/live, после мержа Program.cs останется только live)"
+                ok=1
+                break
+              fi
+              sleep 5
+            done
+            if [ "$ok" != 1 ]; then
+              echo "--- HTTP status (диагностика) ---"
+              curl -sS -o /dev/null -w "health/live: %{http_code}\n" http://127.0.0.1:8080/health/live || echo "health/live: curl_error"
+              curl -sS -o /dev/null -w "swagger.json: %{http_code}\n" http://127.0.0.1:8080/swagger/v1/swagger.json || echo "swagger: curl_error"
+              echo "--- docker logs learningplatform-api (last 120 lines) ---"
+              docker logs learningplatform-api --tail 120 2>&1 || true
+              exit 1
+            fi

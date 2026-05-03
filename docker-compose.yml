@@ -1,9 +1,19 @@
+# BACKEND_IMAGE задаёт CI.
+# В .env рядом с этим файлом обязательно задайте POSTGRES_CONNECTION_STRING (одна строка, без кавычек):
+#   POSTGRES_CONNECTION_STRING=Host=host.docker.internal;Port=5432;Database=...;Username=...;Password=...
+# Compose подставит её в ConnectionStrings__DefaultConnection внутри контейнера (надёжнее, чем только env_file + __).
+# Postgres на хосте: extra_hosts + host.docker.internal (см. ниже).
+# Публикация наружу (HTTP): nginx :80 → 127.0.0.1:8080 — см. deploy/nginx/INSTALL.txt
 services:
   api:
     image: ${BACKEND_IMAGE}
     container_name: learningplatform-api
     env_file:
       - .env
+    environment:
+      ConnectionStrings__DefaultConnection: ${POSTGRES_CONNECTION_STRING:?POSTGRES_CONNECTION_STRING_missing_in_dot_env}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:8080:8080"
     restart: unless-stopped
