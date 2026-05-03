@@ -41,6 +41,9 @@ public record ChildResponse(
     Guid CurrentProgramId,
     ProgramDifficultyTrack LearningProgramTrack);
 
+public record CreateLearningProgramRequest(ProgramDifficultyTrack DifficultyTrack, string Title, string Description, bool IsPublished);
+public record UpdateLearningProgramRequest(string Title, string Description, bool IsPublished);
+
 public record CreateUnitRequest(Guid ProgramId, string Title, string Description, int OrderIndex, bool IsPublished);
 public record UpdateUnitRequest(string Title, string Description, int OrderIndex, bool IsPublished, Guid? ProgramId = null);
 public record CreateLessonRequest(Guid UnitId, string Title, int OrderIndex, LessonType LessonType, Difficulty Difficulty, int XpReward, bool IsPublished);
@@ -60,12 +63,19 @@ public class QueryOptions
 
 public class UnitQueryOptions : QueryOptions
 {
+    /// <summary>Explicit program (anonymous / admin). Admin catalog requires this.</summary>
     public Guid? ProgramId { get; set; }
+    /// <summary>Parent: каталог в контексте выбранного ребёнка (D4).</summary>
+    public Guid? ChildId { get; set; }
 }
 
 public class LessonQueryOptions : QueryOptions
 {
     public Guid? UnitId { get; set; }
+    /// <summary>Фильтр уроков по программе (после резолва каталога).</summary>
+    public Guid? ProgramId { get; set; }
+    /// <summary>Parent: резолв программы по ребёнку.</summary>
+    public Guid? ChildId { get; set; }
     public LessonType? LessonType { get; set; }
     public Difficulty? Difficulty { get; set; }
     public bool? IsPublished { get; set; }

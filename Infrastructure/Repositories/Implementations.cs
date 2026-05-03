@@ -59,8 +59,27 @@ public class ChildRepository(AppDbContext db) : IChildRepository
 
 public class CurriculumRepository(AppDbContext db) : ICurriculumRepository
 {
+    public Task<PagedResponse<LearningProgram>> GetPrograms(QueryOptions query, bool includeUnpublished)
+    {
+        var q = db.Programs.AsQueryable();
+        if (!includeUnpublished) q = q.Where(x => x.IsPublished);
+        return q.OrderBy(x => x.DifficultyTrack).ToPagedResponse(query);
+    }
+
     public Task<LearningProgram?> GetProgram(Guid id) => db.Programs.FirstOrDefaultAsync(x => x.Id == id);
     public Task<LearningProgram?> GetProgramByTrack(ProgramDifficultyTrack track) => db.Programs.FirstOrDefaultAsync(x => x.DifficultyTrack == track);
+
+    public Task AddProgram(LearningProgram program) => db.Programs.AddAsync(program).AsTask();
+
+    public Task DeleteProgram(LearningProgram program)
+    {
+        db.Programs.Remove(program);
+        return Task.CompletedTask;
+    }
+
+    public Task<int> CountUnitsForProgram(Guid programId) => db.Units.CountAsync(x => x.ProgramId == programId);
+
+    public Task<int> CountChildrenUsingProgram(Guid programId) => db.Children.CountAsync(x => x.CurrentProgramId == programId);
 
     public Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query)
     {
@@ -74,18 +93,22 @@ public class CurriculumRepository(AppDbContext db) : ICurriculumRepository
     public Task DeleteUnit(Unit unit) { db.Units.Remove(unit); return Task.CompletedTask; }
     public Task<PagedResponse<Lesson>> GetLessons(LessonQueryOptions query)
     {
-        var q = db.Lessons.AsQueryable();
+        var q = db.Lessons.Include(x => x.Unit).AsQueryable();
+        if (query.ProgramId.HasValue) q = q.Where(x => x.Unit!.ProgramId == query.ProgramId.Value);
         if (query.UnitId.HasValue) q = q.Where(x => x.UnitId == query.UnitId.Value);
         if (query.LessonType.HasValue) q = q.Where(x => x.LessonType == query.LessonType.Value);
         if (query.Difficulty.HasValue) q = q.Where(x => x.Difficulty == query.Difficulty.Value);
         if (query.IsPublished.HasValue) q = q.Where(x => x.IsPublished == query.IsPublished.Value);
         return q.OrderBy(x => x.OrderIndex).ToPagedResponse(query);
     }
-    public Task<Lesson?> GetLesson(Guid id) => db.Lessons.FirstOrDefaultAsync(x => x.Id == id);
+
+    public Task<Lesson?> GetLesson(Guid id) =>
+        db.Lessons.Include(x => x.Unit).FirstOrDefaultAsync(x => x.Id == id);
     public Task AddLesson(Lesson lesson) => db.Lessons.AddAsync(lesson).AsTask();
     public Task DeleteLesson(Lesson lesson) { db.Lessons.Remove(lesson); return Task.CompletedTask; }
     public Task<PagedResponse<Exercise>> GetExercises(Guid lessonId, QueryOptions query) => db.Exercises.Where(x => x.LessonId == lessonId).OrderBy(x => x.OrderIndex).ToPagedResponse(query);
-    public Task<Exercise?> GetExercise(Guid id) => db.Exercises.Include(x => x.Lesson).FirstOrDefaultAsync(x => x.Id == id);
+    public Task<Exercise?> GetExercise(Guid id) =>
+        db.Exercises.Include(x => x.Lesson).ThenInclude(l => l!.Unit).FirstOrDefaultAsync(x => x.Id == id);
     public Task AddExercise(Exercise exercise) => db.Exercises.AddAsync(exercise).AsTask();
     public Task DeleteExercise(Exercise exercise) { db.Exercises.Remove(exercise); return Task.CompletedTask; }
 }

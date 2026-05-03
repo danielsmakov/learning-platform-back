@@ -82,6 +82,25 @@ public class UpdateParentRequestValidator : AbstractValidator<UpdateParentReques
     }
 }
 
+public class CreateLearningProgramRequestValidator : AbstractValidator<CreateLearningProgramRequest>
+{
+    public CreateLearningProgramRequestValidator()
+    {
+        RuleFor(x => x.DifficultyTrack).IsInEnum();
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Description).MaximumLength(2000);
+    }
+}
+
+public class UpdateLearningProgramRequestValidator : AbstractValidator<UpdateLearningProgramRequest>
+{
+    public UpdateLearningProgramRequestValidator()
+    {
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Description).MaximumLength(2000);
+    }
+}
+
 public class CreateUnitRequestValidator : AbstractValidator<CreateUnitRequest>
 {
     public CreateUnitRequestValidator()

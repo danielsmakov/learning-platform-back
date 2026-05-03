@@ -6,10 +6,56 @@ namespace LearningPlatform.Application.Services;
 
 public class CurriculumService(ICurriculumRepository curriculumRepository, IActivityLogRepository activityLogRepository, IUnitOfWork unitOfWork)
 {
+    public Task<PagedResponse<LearningProgram>> GetPrograms(QueryOptions query, bool includeUnpublished) =>
+        curriculumRepository.GetPrograms(query, includeUnpublished);
+
+    public async Task<LearningProgram> CreateProgram(CreateLearningProgramRequest request, Guid adminId)
+    {
+        if (await curriculumRepository.GetProgramByTrack(request.DifficultyTrack) is not null)
+            throw new InvalidOperationException("A program with this difficulty track already exists.");
+
+        var program = new LearningProgram
+        {
+            DifficultyTrack = request.DifficultyTrack,
+            Title = request.Title.Trim(),
+            Description = request.Description.Trim(),
+            IsPublished = request.IsPublished
+        };
+        await curriculumRepository.AddProgram(program);
+        await Log(adminId, "create", "program", program.Id.ToString());
+        await unitOfWork.SaveChanges();
+        return program;
+    }
+
+    public async Task<LearningProgram> UpdateProgram(Guid id, UpdateLearningProgramRequest request, Guid adminId)
+    {
+        var program = await curriculumRepository.GetProgram(id) ?? throw new KeyNotFoundException("Program not found.");
+        program.Title = request.Title.Trim();
+        program.Description = request.Description.Trim();
+        program.IsPublished = request.IsPublished;
+        await Log(adminId, "update", "program", id.ToString());
+        await unitOfWork.SaveChanges();
+        return program;
+    }
+
+    public async Task DeleteProgram(Guid id, Guid adminId)
+    {
+        var program = await curriculumRepository.GetProgram(id) ?? throw new KeyNotFoundException("Program not found.");
+        if (await curriculumRepository.CountUnitsForProgram(id) > 0)
+            throw new InvalidOperationException("Cannot delete a program that still has units.");
+        if (await curriculumRepository.CountChildrenUsingProgram(id) > 0)
+            throw new InvalidOperationException("Cannot delete a program assigned to one or more children.");
+        await curriculumRepository.DeleteProgram(program);
+        await Log(adminId, "delete", "program", id.ToString());
+        await unitOfWork.SaveChanges();
+    }
+
     public Task<PagedResponse<Unit>> GetUnits(UnitQueryOptions query) => curriculumRepository.GetUnits(query);
 
-    public async Task<Unit> CreateUnit(CreateUnitRequest request, Guid adminId)
+    public async Task<Unit> CreateUnit(CreateUnitRequest request, Guid adminId, Guid programContextId)
     {
+        if (request.ProgramId != programContextId)
+            throw new InvalidOperationException("Body ProgramId must match query programId.");
         _ = await curriculumRepository.GetProgram(request.ProgramId) ?? throw new KeyNotFoundException("Program not found.");
         var unit = new Unit
         {
@@ -25,9 +71,12 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         return unit;
     }
 
-    public async Task<Unit> UpdateUnit(Guid id, UpdateUnitRequest request, Guid adminId)
+    public async Task<Unit> UpdateUnit(Guid id, UpdateUnitRequest request, Guid adminId, Guid programContextId)
     {
         var unit = await curriculumRepository.GetUnit(id) ?? throw new KeyNotFoundException("Unit not found.");
+        var resultingProgramId = request.ProgramId ?? unit.ProgramId;
+        if (resultingProgramId != programContextId)
+            throw new InvalidOperationException("Query programId must match the unit's program (or the target program when moving a unit).");
         unit.Title = request.Title;
         unit.Description = request.Description;
         unit.OrderIndex = request.OrderIndex;
@@ -42,9 +91,11 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         return unit;
     }
 
-    public async Task DeleteUnit(Guid id, Guid adminId)
+    public async Task DeleteUnit(Guid id, Guid adminId, Guid programContextId)
     {
         var unit = await curriculumRepository.GetUnit(id) ?? throw new KeyNotFoundException("Unit not found.");
+        if (unit.ProgramId != programContextId)
+            throw new InvalidOperationException("Query programId does not match this unit's program.");
         await curriculumRepository.DeleteUnit(unit);
         await Log(adminId, "delete", "unit", id.ToString());
         await unitOfWork.SaveChanges();
@@ -52,8 +103,11 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
 
     public Task<PagedResponse<Lesson>> GetLessons(LessonQueryOptions query) => curriculumRepository.GetLessons(query);
 
-    public async Task<Lesson> CreateLesson(CreateLessonRequest request, Guid adminId)
+    public async Task<Lesson> CreateLesson(CreateLessonRequest request, Guid adminId, Guid programContextId)
     {
+        var unit = await curriculumRepository.GetUnit(request.UnitId) ?? throw new KeyNotFoundException("Unit not found.");
+        if (unit.ProgramId != programContextId)
+            throw new InvalidOperationException("Unit is not in the program specified by programId.");
         var lesson = new Lesson
         {
             UnitId = request.UnitId,
@@ -70,9 +124,11 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         return lesson;
     }
 
-    public async Task<Lesson> UpdateLesson(Guid id, UpdateLessonRequest request, Guid adminId)
+    public async Task<Lesson> UpdateLesson(Guid id, UpdateLessonRequest request, Guid adminId, Guid programContextId)
     {
         var lesson = await curriculumRepository.GetLesson(id) ?? throw new KeyNotFoundException("Lesson not found.");
+        if (lesson.Unit is null || lesson.Unit.ProgramId != programContextId)
+            throw new InvalidOperationException("Query programId does not match this lesson's program.");
         lesson.Title = request.Title;
         lesson.OrderIndex = request.OrderIndex;
         lesson.LessonType = request.LessonType;
@@ -84,9 +140,11 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         return lesson;
     }
 
-    public async Task DeleteLesson(Guid id, Guid adminId)
+    public async Task DeleteLesson(Guid id, Guid adminId, Guid programContextId)
     {
         var lesson = await curriculumRepository.GetLesson(id) ?? throw new KeyNotFoundException("Lesson not found.");
+        if (lesson.Unit is null || lesson.Unit.ProgramId != programContextId)
+            throw new InvalidOperationException("Query programId does not match this lesson's program.");
         await curriculumRepository.DeleteLesson(lesson);
         await Log(adminId, "delete", "lesson", id.ToString());
         await unitOfWork.SaveChanges();
@@ -94,8 +152,18 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
 
     public Task<PagedResponse<Exercise>> GetExercises(Guid lessonId, QueryOptions query) => curriculumRepository.GetExercises(lessonId, query);
 
-    public async Task<Exercise> CreateExercise(Guid lessonId, CreateExerciseRequest request, Guid adminId)
+    public async Task EnsureLessonBelongsToProgram(Guid lessonId, Guid programId)
     {
+        var lesson = await curriculumRepository.GetLesson(lessonId) ?? throw new KeyNotFoundException("Lesson not found.");
+        if (lesson.Unit is null || lesson.Unit.ProgramId != programId)
+            throw new InvalidOperationException("Lesson is not in the resolved program.");
+    }
+
+    public async Task<Exercise> CreateExercise(Guid lessonId, CreateExerciseRequest request, Guid adminId, Guid programContextId)
+    {
+        var lesson = await curriculumRepository.GetLesson(lessonId) ?? throw new KeyNotFoundException("Lesson not found.");
+        if (lesson.Unit is null || lesson.Unit.ProgramId != programContextId)
+            throw new InvalidOperationException("Query programId does not match this lesson's program.");
         var exercise = new Exercise
         {
             LessonId = lessonId,
@@ -109,9 +177,11 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         return exercise;
     }
 
-    public async Task<Exercise> UpdateExercise(Guid id, UpdateExerciseRequest request, Guid adminId)
+    public async Task<Exercise> UpdateExercise(Guid id, UpdateExerciseRequest request, Guid adminId, Guid programContextId)
     {
         var exercise = await curriculumRepository.GetExercise(id) ?? throw new KeyNotFoundException("Exercise not found.");
+        if (exercise.Lesson?.Unit is null || exercise.Lesson.Unit.ProgramId != programContextId)
+            throw new InvalidOperationException("Query programId does not match this exercise's program.");
         exercise.ExerciseType = request.ExerciseType;
         exercise.OrderIndex = request.OrderIndex;
         exercise.Content = request.Content;
@@ -120,9 +190,11 @@ public class CurriculumService(ICurriculumRepository curriculumRepository, IActi
         return exercise;
     }
 
-    public async Task DeleteExercise(Guid id, Guid adminId)
+    public async Task DeleteExercise(Guid id, Guid adminId, Guid programContextId)
     {
         var exercise = await curriculumRepository.GetExercise(id) ?? throw new KeyNotFoundException("Exercise not found.");
+        if (exercise.Lesson?.Unit is null || exercise.Lesson.Unit.ProgramId != programContextId)
+            throw new InvalidOperationException("Query programId does not match this exercise's program.");
         await curriculumRepository.DeleteExercise(exercise);
         await Log(adminId, "delete", "exercise", id.ToString());
         await unitOfWork.SaveChanges();
