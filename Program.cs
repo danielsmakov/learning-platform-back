@@ -229,7 +229,9 @@ app.UseRateLimiter();
 
 app.MapControllers();
 app.MapHub<ParentNotificationHub>("/hubs/parent-notifications");
-app.MapHealthChecks("/health");
+// /health — проверка БД (может вернуть не-2xx при сбоях EF); /health/live — только «процесс жив» (CI после деплоя).
+app.MapGet("/health/live", () => Results.Text("OK", "text/plain")).AllowAnonymous();
+app.MapHealthChecks("/health").AllowAnonymous();
 
 using (var scope = app.Services.CreateScope())
 {

@@ -82,7 +82,7 @@ jobs:
             docker compose pull
             docker compose up -d
             sleep 10
-            if ! curl -fsS http://127.0.0.1:8080/health >/dev/null; then
+            if ! curl -fsS http://127.0.0.1:8080/health/live >/dev/null; then
               echo "--- docker logs learningplatform-api (last 120 lines) ---"
               docker logs learningplatform-api --tail 120 2>&1 || true
               exit 1
