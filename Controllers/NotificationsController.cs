@@ -5,8 +5,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LearningPlatform.Controllers;
 
+/// <summary>
+/// Родительские уведомления: только JWT роли Parent (H3). Ребёнок и админ здесь не поддерживаются —
+/// уведомления привязаны к <c>ParentId</c> в БД; админ смотрит данные через БД или отдельные админ-эндпоинты при появлении.
+/// </summary>
 [ApiController]
-[Authorize(Roles = "Parent,Admin")]
+[Authorize(Roles = "Parent")]
 [Route("api/v1/notifications")]
 public class NotificationsController(NotificationService service) : ControllerBase
 {

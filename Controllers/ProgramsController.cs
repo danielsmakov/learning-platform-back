@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LearningPlatform.Controllers;
 
+/// <summary>H3: чтение списка программ — аноним; мутации — только Admin.</summary>
 [ApiController]
 [Route("api/v1/programs")]
 public class ProgramsController(CurriculumService curriculum) : ControllerBase

@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LearningPlatform.Controllers;
 
-/// <summary>H3: только JWT родителя или ребёнка; доступ к submit/complete через <see cref="AuthGuard.RequireChildAccess"/>.</summary>
+/// <summary>
+/// H3: JWT Parent, Child или Admin; сабмит/resume/complete только с <see cref="AuthGuard.RequireChildAccess"/> (ребёнок — свой профиль, без админки каталога).
+/// </summary>
 [ApiController]
 [Authorize(Roles = "Parent,Child,Admin")]
 [Route("api/v1")]

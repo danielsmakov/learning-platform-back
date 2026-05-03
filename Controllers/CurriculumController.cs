@@ -5,6 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LearningPlatform.Controllers;
 
+/// <summary>
+/// H3: каталог GET — аноним с <c>programId</c>; Parent с <c>childId</c> (свой ребёнок) или <c>programId</c>; Child — только программа из профиля;
+/// <c>all=true</c> и админские мутации — только Admin. См. <see cref="CatalogProgramResolver"/>.
+/// </summary>
 [ApiController]
 [Route("api/v1")]
 public class CurriculumController(CurriculumService service, CatalogProgramResolver catalogResolver) : ControllerBase
