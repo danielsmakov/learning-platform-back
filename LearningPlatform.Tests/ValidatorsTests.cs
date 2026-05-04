@@ -90,4 +90,48 @@ public class ValidatorsTests
         var r = v.Validate(new UpdateParentRequest("parent@test.dev"));
         Assert.True(r.IsValid);
     }
+
+    [Fact]
+    public void CreateUnitRequestValidator_requires_positive_order_index()
+    {
+        var v = new CreateUnitRequestValidator();
+        var bad = v.Validate(new CreateUnitRequest(
+            Guid.NewGuid(),
+            "T",
+            "",
+            OrderIndex: 0,
+            IsPublished: true));
+        Assert.False(bad.IsValid);
+
+        var ok = v.Validate(new CreateUnitRequest(
+            Guid.NewGuid(),
+            "T",
+            "",
+            OrderIndex: 1,
+            IsPublished: true));
+        Assert.True(ok.IsValid);
+    }
+
+    [Fact]
+    public void SubmitExerciseRequestValidator_enforces_time_bounds()
+    {
+        var v = new SubmitExerciseRequestValidator();
+        Assert.False(v.Validate(new SubmitExerciseRequest(Guid.NewGuid(), true, 50)).IsValid);
+        Assert.True(v.Validate(new SubmitExerciseRequest(Guid.NewGuid(), true, 100)).IsValid);
+    }
+
+    [Fact]
+    public void CompleteLessonRequestValidator_rejects_empty_child_id()
+    {
+        var v = new CompleteLessonRequestValidator();
+        Assert.False(v.Validate(new CompleteLessonRequest(Guid.Empty)).IsValid);
+    }
+
+    [Fact]
+    public void CreateExerciseRequestValidator_requires_content_and_order()
+    {
+        var v = new CreateExerciseRequestValidator();
+        Assert.False(v.Validate(new CreateExerciseRequest(LessonType.Phonics, 0, "{}")).IsValid);
+        Assert.True(v.Validate(new CreateExerciseRequest(LessonType.Phonics, 1, "{}")).IsValid);
+    }
 }
