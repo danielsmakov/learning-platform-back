@@ -31,10 +31,10 @@ public class ValidatorsTests
     }
 
     [Fact]
-    public void ChildLoginRequestValidator_accepts_four_digit_pin()
+    public void ChildLoginRequestValidator_accepts_login_and_four_digit_pin()
     {
         var v = new ChildLoginRequestValidator();
-        var r = v.Validate(new ChildLoginRequest(Guid.NewGuid(), "1234"));
+        var r = v.Validate(new ChildLoginRequest("postmankid", "1234"));
         Assert.True(r.IsValid);
     }
 
@@ -42,8 +42,16 @@ public class ValidatorsTests
     public void ChildLoginRequestValidator_rejects_non_digits_in_pin()
     {
         var v = new ChildLoginRequestValidator();
-        var r = v.Validate(new ChildLoginRequest(Guid.NewGuid(), "12ab"));
+        var r = v.Validate(new ChildLoginRequest("postmankid", "12ab"));
         Assert.False(r.IsValid);
+    }
+
+    [Fact]
+    public void ChildLoginRequestValidator_rejects_pin_not_four_digits()
+    {
+        var v = new ChildLoginRequestValidator();
+        Assert.False(v.Validate(new ChildLoginRequest("kid1", "123")).IsValid);
+        Assert.False(v.Validate(new ChildLoginRequest("kid1", "12345")).IsValid);
     }
 
     [Fact]

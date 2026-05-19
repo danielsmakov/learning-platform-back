@@ -159,13 +159,13 @@ public class AuthServiceTests
             Name = "N",
             Age = 7,
             AvatarUrl = "x",
-            DisplayName = "Display",
+            Login = "kidlogin",
             PinHash = BCrypt.Net.BCrypt.HashPassword(pin, workFactor: 4),
             CurrentProgramId = Guid.NewGuid()
         };
 
         var childRepo = new Mock<IChildRepository>();
-        childRepo.Setup(c => c.GetById(childId)).ReturnsAsync(child);
+        childRepo.Setup(c => c.GetByLoginAsync("kidlogin")).ReturnsAsync(child);
 
         var authRepo = new Mock<IAuthRepository>();
         authRepo.Setup(a => a.AddRefreshToken(It.IsAny<RefreshToken>())).Returns(Task.CompletedTask);
@@ -183,11 +183,11 @@ public class AuthServiceTests
             new LoginRequestValidator(),
             new ChildLoginRequestValidator());
 
-        var response = await sut.ChildLogin(new ChildLoginRequest(childId, pin));
+        var response = await sut.ChildLogin(new ChildLoginRequest("kidlogin", pin));
 
         Assert.Equal(childId, response.UserId);
         Assert.Equal("Child", response.Role);
-        Assert.Contains(child.DisplayName, response.Email);
+        Assert.Contains(child.Login, response.Email);
     }
 
     [Fact]
