@@ -199,7 +199,7 @@ public class LearningService(
             ChildId = child.Id,
             Type = NotificationType.Milestone,
             Title = "Lesson completed",
-            Body = $"{child.DisplayName} completed {lesson.Title} and earned {lesson.XpReward} XP."
+            Body = $"{child.Name} completed {lesson.Title} and earned {lesson.XpReward} XP."
         };
         await notificationRepository.Add(lessonNotification);
         signal.Add(lessonNotification);
@@ -212,7 +212,7 @@ public class LearningService(
                 ChildId = child.Id,
                 Type = NotificationType.LevelUp,
                 Title = "Level up",
-                Body = $"{child.DisplayName} reached level {newLevel}."
+                Body = $"{child.Name} reached level {newLevel}."
             };
             await notificationRepository.Add(levelNotification);
             signal.Add(levelNotification);
@@ -229,7 +229,7 @@ public class LearningService(
                 ChildId = child.Id,
                 Type = NotificationType.UnitCompleted,
                 Title = "Unit completed",
-                Body = $"{child.DisplayName} completed all lessons in unit \"{unitTitle}\"."
+                Body = $"{child.Name} completed all lessons in unit \"{unitTitle}\"."
             };
             await notificationRepository.Add(unitNotification);
             signal.Add(unitNotification);

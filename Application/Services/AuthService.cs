@@ -49,7 +49,8 @@ public class AuthService(
     public async Task<AuthResponse> ChildLogin(ChildLoginRequest request)
     {
         await childLoginValidator.ValidateAndThrowAsync(request);
-        var child = await childRepository.GetById(request.ChildId)
+        var login = ChildLoginRules.NormalizeLogin(request.Login);
+        var child = await childRepository.GetByLoginAsync(login)
                     ?? throw new AppUnauthorizedException("Invalid child credentials.");
         if (!BCrypt.Net.BCrypt.Verify(request.Pin, child.PinHash))
             throw new AppUnauthorizedException("Invalid child credentials.");
@@ -57,7 +58,7 @@ public class AuthService(
         var shadowChildUser = new User
         {
             Id = child.Id,
-            Email = $"{child.DisplayName}@child.local",
+            Email = $"{child.Login}@child.local",
             Role = UserRole.Child
         };
         return await BuildAuthResponse(shadowChildUser);

@@ -4,7 +4,7 @@ namespace LearningPlatform.Application;
 
 public record RegisterRequest(string Email, string Password);
 public record LoginRequest(string Email, string Password);
-public record ChildLoginRequest(Guid ChildId, string Pin);
+public record ChildLoginRequest(string Login, string Pin);
 public record RefreshRequest(string RefreshToken);
 public record AuthResponse(Guid UserId, string Email, string Role, string AccessToken, string RefreshToken, DateTime ExpiresAt);
 
@@ -15,14 +15,14 @@ public record CreateChildRequest(
     string Name,
     int Age,
     string AvatarUrl,
-    string DisplayName,
+    string Login,
     string Pin,
     ProgramDifficultyTrack LearningProgramTrack = ProgramDifficultyTrack.Beginner);
 public record UpdateChildRequest(
     string Name,
     int Age,
     string AvatarUrl,
-    string DisplayName,
+    string Login,
     ProgramDifficultyTrack? LearningProgramTrack = null);
 
 /// <summary>
@@ -39,7 +39,7 @@ public record ChildResponse(
     string Name,
     int Age,
     string AvatarUrl,
-    string DisplayName,
+    string Login,
     int CurrentLevel,
     int XpTotal,
     int StreakCurrent,

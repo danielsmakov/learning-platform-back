@@ -33,8 +33,9 @@ public class ChildLoginRequestValidator : AbstractValidator<ChildLoginRequest>
 {
     public ChildLoginRequestValidator()
     {
-        RuleFor(x => x.ChildId).NotEmpty();
-        RuleFor(x => x.Pin).NotEmpty().Length(4, 8).Matches("^[0-9]+$");
+        RuleFor(x => x.Login).NotEmpty().Must(ChildLoginRules.IsValidLoginFormat)
+            .WithMessage($"Login must be {ChildLoginRules.LoginMinLength}–{ChildLoginRules.LoginMaxLength} characters: lowercase letters, digits, underscore.");
+        RuleFor(x => x.Pin).NotEmpty().Matches(@"^\d{4}$").WithMessage("PIN must be exactly 4 digits.");
     }
 }
 
@@ -44,12 +45,13 @@ public class CreateChildRequestValidator : AbstractValidator<CreateChildRequest>
     {
         RuleFor(x => x.ParentId).NotEmpty();
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
-        RuleFor(x => x.DisplayName).NotEmpty().MaximumLength(64);
+        RuleFor(x => x.Login).NotEmpty().Must(ChildLoginRules.IsValidLoginFormat)
+            .WithMessage($"Login must be {ChildLoginRules.LoginMinLength}–{ChildLoginRules.LoginMaxLength} characters: lowercase letters, digits, underscore.");
         RuleFor(x => x.Age).InclusiveBetween(3, 14);
         RuleFor(x => x.AvatarUrl)
             .Must(id => string.IsNullOrWhiteSpace(id) || ChildAvatars.IsAllowed(id))
             .WithMessage("Avatar id must be one of avatar-01 … avatar-10.");
-        RuleFor(x => x.Pin).NotEmpty().Length(4, 8).Matches("^[0-9]+$");
+        RuleFor(x => x.Pin).NotEmpty().Matches(@"^\d{4}$").WithMessage("PIN must be exactly 4 digits.");
         RuleFor(x => x.LearningProgramTrack).IsInEnum();
     }
 }
@@ -59,7 +61,8 @@ public class UpdateChildRequestValidator : AbstractValidator<UpdateChildRequest>
     public UpdateChildRequestValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
-        RuleFor(x => x.DisplayName).NotEmpty().MaximumLength(64);
+        RuleFor(x => x.Login).NotEmpty().Must(ChildLoginRules.IsValidLoginFormat)
+            .WithMessage($"Login must be {ChildLoginRules.LoginMinLength}–{ChildLoginRules.LoginMaxLength} characters: lowercase letters, digits, underscore.");
         RuleFor(x => x.Age).InclusiveBetween(3, 14);
         RuleFor(x => x.AvatarUrl)
             .Must(id => string.IsNullOrWhiteSpace(id) || ChildAvatars.IsAllowed(id))

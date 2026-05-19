@@ -54,13 +54,17 @@ public class ParentChildService(
     {
         var program = await curriculumRepository.GetProgramByTrack(request.LearningProgramTrack)
             ?? throw new KeyNotFoundException("Program for selected level not found.");
+        var login = ChildLoginRules.NormalizeLogin(request.Login);
+        if (await childRepository.LoginExistsAsync(login))
+            throw new InvalidOperationException("Login is already taken.");
+
         var child = new Child
         {
             ParentId = request.ParentId,
-            Name = request.Name,
+            Name = request.Name.Trim(),
             Age = request.Age,
             AvatarUrl = ChildAvatars.Normalize(request.AvatarUrl),
-            DisplayName = request.DisplayName,
+            Login = login,
             PinHash = BCrypt.Net.BCrypt.HashPassword(request.Pin, workFactor: 12),
             CurrentProgramId = program.Id
         };
@@ -81,10 +85,14 @@ public class ParentChildService(
     public async Task<ChildResponse> UpdateChild(Guid id, UpdateChildRequest request, Guid? adminActorId = null)
     {
         var child = await childRepository.GetById(id) ?? throw new KeyNotFoundException("Child not found.");
-        child.Name = request.Name;
+        var login = ChildLoginRules.NormalizeLogin(request.Login);
+        if (await childRepository.LoginExistsAsync(login, id))
+            throw new InvalidOperationException("Login is already taken.");
+
+        child.Name = request.Name.Trim();
         child.Age = request.Age;
         child.AvatarUrl = ChildAvatars.Normalize(request.AvatarUrl);
-        child.DisplayName = request.DisplayName;
+        child.Login = login;
         if (request.LearningProgramTrack.HasValue)
         {
             var program = await curriculumRepository.GetProgramByTrack(request.LearningProgramTrack.Value)
@@ -112,7 +120,7 @@ public class ParentChildService(
             child.Name,
             child.Age,
             child.AvatarUrl,
-            child.DisplayName,
+            child.Login,
             child.CurrentLevel,
             child.XpTotal,
             child.StreakCurrent,
