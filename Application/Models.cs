@@ -9,6 +9,7 @@ public record RefreshRequest(string RefreshToken);
 public record AuthResponse(Guid UserId, string Email, string Role, string AccessToken, string RefreshToken, DateTime ExpiresAt);
 
 public record UpdateParentRequest(string Email);
+public record ChangeParentPasswordRequest(string CurrentPassword, string NewPassword);
 public record CreateChildRequest(
     Guid ParentId,
     string Name,
