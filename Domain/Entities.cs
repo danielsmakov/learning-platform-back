@@ -20,7 +20,7 @@ public class Child
     [MaxLength(100)] public string Name { get; set; } = string.Empty;
     public int Age { get; set; }
     [MaxLength(255)] public string AvatarUrl { get; set; } = string.Empty;
-    [MaxLength(64)] public string DisplayName { get; set; } = string.Empty;
+    [MaxLength(32)] public string Login { get; set; } = string.Empty;
     [MaxLength(255)] public string PinHash { get; set; } = string.Empty;
     public int CurrentLevel { get; set; } = 1;
     public int XpTotal { get; set; }

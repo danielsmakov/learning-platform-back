@@ -25,6 +25,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     {
         modelBuilder.Entity<User>().HasIndex(x => x.Email).IsUnique();
         modelBuilder.Entity<Child>().HasIndex(x => x.ParentId);
+        modelBuilder.Entity<Child>().HasIndex(x => x.Login).IsUnique();
         modelBuilder.Entity<Child>().HasIndex(x => x.CurrentProgramId);
         modelBuilder.Entity<LearningProgram>().HasIndex(x => x.DifficultyTrack).IsUnique();
         modelBuilder.Entity<LearningProgram>().HasIndex(x => x.IsDefault).IsUnique().HasFilter("\"IsDefault\" = TRUE");

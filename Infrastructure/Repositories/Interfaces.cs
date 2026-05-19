@@ -15,6 +15,8 @@ public interface IUserRepository
 public interface IChildRepository
 {
     Task<Child?> GetById(Guid id);
+    Task<Child?> GetByLoginAsync(string normalizedLogin);
+    Task<bool> LoginExistsAsync(string normalizedLogin, Guid? excludeChildId = null);
     Task Add(Child child);
     Task Delete(Child child);
     Task<bool> IsOwner(Guid parentId, Guid childId);

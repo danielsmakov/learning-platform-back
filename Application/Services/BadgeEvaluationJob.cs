@@ -110,7 +110,7 @@ public class BadgeEvaluationJob(
         ChildId = child.Id,
         Type = NotificationType.BadgeEarned,
         Title = "Badge earned",
-        Body = $"{child.DisplayName} earned badge: {badge.Name}."
+        Body = $"{child.Name} earned badge: {badge.Name}."
     };
 
     private async Task EnsureBadgeSeedAsync()

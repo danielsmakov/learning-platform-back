@@ -84,7 +84,7 @@ public class AdaptiveDifficultyJob(
         await learningRepository.ClearChildLearningProgressAsync(child.Id);
 
         var title = "Learning track updated";
-        var body = $"{child.DisplayName}'s program was adjusted to {newProgram.Title} based on mistakes in the last completed unit ({errors} incorrect attempts before first correct answers).";
+        var body = $"{child.Name}'s program was adjusted to {newProgram.Title} based on mistakes in the last completed unit ({errors} incorrect attempts before first correct answers).";
 
         var notification = new Notification
         {

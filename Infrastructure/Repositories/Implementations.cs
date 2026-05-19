@@ -34,6 +34,13 @@ public class ChildRepository(AppDbContext db) : IChildRepository
 {
     public Task<Child?> GetById(Guid id) =>
         db.Children.Include(x => x.CurrentProgram).FirstOrDefaultAsync(x => x.Id == id);
+
+    public Task<Child?> GetByLoginAsync(string normalizedLogin) =>
+        db.Children.Include(x => x.CurrentProgram).FirstOrDefaultAsync(x => x.Login == normalizedLogin);
+
+    public Task<bool> LoginExistsAsync(string normalizedLogin, Guid? excludeChildId = null) =>
+        db.Children.AnyAsync(x => x.Login == normalizedLogin && (excludeChildId == null || x.Id != excludeChildId));
+
     public Task Add(Child child) => db.Children.AddAsync(child).AsTask();
     public Task Delete(Child child)
     {
@@ -50,12 +57,12 @@ public class ChildRepository(AppDbContext db) : IChildRepository
     public Task<List<Child>> GetNotActiveToday(DateOnly today) => db.Children.Where(c => c.LastActivityDate != today).ToListAsync();
 
     public Task<List<Child>> ListChildrenForParentAsync(Guid parentId) =>
-        db.Children.AsNoTracking().Where(x => x.ParentId == parentId).OrderBy(x => x.DisplayName).ToListAsync();
+        db.Children.AsNoTracking().Where(x => x.ParentId == parentId).OrderBy(x => x.Name).ToListAsync();
     public async Task<PagedResponse<object>> GetLeaderboard(LeaderboardQueryOptions query)
     {
         var q = db.Children.Where(x => x.Age >= query.MinAge && x.Age <= query.MaxAge)
             .OrderByDescending(x => x.XpTotal)
-            .Select(x => new { x.DisplayName, x.Age, x.XpTotal, x.CurrentLevel });
+            .Select(x => new { x.Name, x.Age, x.XpTotal, x.CurrentLevel });
         var r = await q.ToPagedResponse(query);
         return new PagedResponse<object> { Items = r.Items.Cast<object>().ToList(), Total = r.Total, Page = r.Page, PageSize = r.PageSize, TotalPages = r.TotalPages };
     }

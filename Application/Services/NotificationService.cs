@@ -36,7 +36,7 @@ public class NotificationService(
                 ChildId = child.Id,
                 Type = NotificationType.StreakReminder,
                 Title = "Streak at risk",
-                Body = $"{child.DisplayName} has not practiced today yet."
+                Body = $"{child.Name} has not practiced today yet."
             };
             await notificationRepository.Add(n);
             created.Add(n);
@@ -94,7 +94,7 @@ public class NotificationService(
         foreach (var (child, s) in rows)
         {
             sb.AppendLine();
-            sb.Append(child.DisplayName);
+            sb.Append(child.Name);
             sb.Append(": ");
             sb.Append($"{s.ExerciseSubmissions} attempts ({s.IncorrectSubmissions} incorrect), ");
             sb.Append($"{s.LessonsCompletedInPeriod} lessons completed, ");
