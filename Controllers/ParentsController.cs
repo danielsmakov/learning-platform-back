@@ -24,6 +24,14 @@ public class ParentsController(ParentChildService service) : ControllerBase
         return Ok(await service.UpdateParent(id, request));
     }
 
+    [HttpPatch("{id:guid}/password")]
+    public async Task<IActionResult> ChangePassword(Guid id, [FromBody] ChangeParentPasswordRequest request)
+    {
+        AuthGuard.RequireSelfOrAdmin(User, id);
+        await service.ChangeParentPassword(id, request);
+        return NoContent();
+    }
+
     [HttpGet("{id:guid}/children")]
     public async Task<IActionResult> GetParentChildren(Guid id, [FromQuery] QueryOptions query)
     {

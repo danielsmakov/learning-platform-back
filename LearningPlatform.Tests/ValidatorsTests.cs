@@ -54,11 +54,26 @@ public class ValidatorsTests
             Guid.NewGuid(),
             "Name",
             8,
-            "https://x.test/a.png",
+            "avatar-03",
             "Nick",
             "1234",
             ProgramDifficultyTrack.Beginner));
         Assert.True(r.IsValid);
+    }
+
+    [Fact]
+    public void CreateChildRequestValidator_rejects_invalid_avatar_id()
+    {
+        var v = new CreateChildRequestValidator();
+        var r = v.Validate(new CreateChildRequest(
+            Guid.NewGuid(),
+            "Name",
+            8,
+            "https://example.com/a.png",
+            "Nick",
+            "1234",
+            ProgramDifficultyTrack.Beginner));
+        Assert.False(r.IsValid);
     }
 
     [Fact]
@@ -69,7 +84,7 @@ public class ValidatorsTests
             Guid.NewGuid(),
             "Name",
             20,
-            "https://x.test/a.png",
+            "avatar-01",
             "Nick",
             "1234"));
         Assert.False(r.IsValid);
@@ -80,6 +95,22 @@ public class ValidatorsTests
     {
         var v = new MarkNotificationsReadRequestValidator();
         var r = v.Validate(new MarkNotificationsReadRequest([]));
+        Assert.False(r.IsValid);
+    }
+
+    [Fact]
+    public void ChangeParentPasswordRequestValidator_accepts_valid_passwords()
+    {
+        var v = new ChangeParentPasswordRequestValidator();
+        var r = v.Validate(new ChangeParentPasswordRequest("oldpass1", "newpass12"));
+        Assert.True(r.IsValid);
+    }
+
+    [Fact]
+    public void ChangeParentPasswordRequestValidator_rejects_short_new_password()
+    {
+        var v = new ChangeParentPasswordRequestValidator();
+        var r = v.Validate(new ChangeParentPasswordRequest("oldpass1", "short"));
         Assert.False(r.IsValid);
     }
 

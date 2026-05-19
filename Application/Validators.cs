@@ -46,6 +46,9 @@ public class CreateChildRequestValidator : AbstractValidator<CreateChildRequest>
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
         RuleFor(x => x.DisplayName).NotEmpty().MaximumLength(64);
         RuleFor(x => x.Age).InclusiveBetween(3, 14);
+        RuleFor(x => x.AvatarUrl)
+            .Must(id => string.IsNullOrWhiteSpace(id) || ChildAvatars.IsAllowed(id))
+            .WithMessage("Avatar id must be one of avatar-01 … avatar-10.");
         RuleFor(x => x.Pin).NotEmpty().Length(4, 8).Matches("^[0-9]+$");
         RuleFor(x => x.LearningProgramTrack).IsInEnum();
     }
@@ -58,6 +61,9 @@ public class UpdateChildRequestValidator : AbstractValidator<UpdateChildRequest>
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
         RuleFor(x => x.DisplayName).NotEmpty().MaximumLength(64);
         RuleFor(x => x.Age).InclusiveBetween(3, 14);
+        RuleFor(x => x.AvatarUrl)
+            .Must(id => string.IsNullOrWhiteSpace(id) || ChildAvatars.IsAllowed(id))
+            .WithMessage("Avatar id must be one of avatar-01 … avatar-10.");
         When(x => x.LearningProgramTrack.HasValue, () =>
         {
             RuleFor(x => x.LearningProgramTrack!.Value).IsInEnum();
@@ -79,6 +85,15 @@ public class UpdateParentRequestValidator : AbstractValidator<UpdateParentReques
     public UpdateParentRequestValidator()
     {
         RuleFor(x => x.Email).NotEmpty().EmailAddress();
+    }
+}
+
+public class ChangeParentPasswordRequestValidator : AbstractValidator<ChangeParentPasswordRequest>
+{
+    public ChangeParentPasswordRequestValidator()
+    {
+        RuleFor(x => x.CurrentPassword).NotEmpty();
+        RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(8);
     }
 }
 

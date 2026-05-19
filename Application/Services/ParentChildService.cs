@@ -24,6 +24,16 @@ public class ParentChildService(
         return parent;
     }
 
+    public async Task ChangeParentPassword(Guid id, ChangeParentPasswordRequest request)
+    {
+        var parent = await userRepository.GetById(id) ?? throw new KeyNotFoundException("Parent not found.");
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, parent.PasswordHash))
+            throw new InvalidOperationException("Current password is incorrect.");
+
+        parent.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, workFactor: 12);
+        await unitOfWork.SaveChanges();
+    }
+
     public async Task<PagedResponse<ChildResponse>> GetParentChildren(Guid parentId, QueryOptions query)
     {
         var page = await childRepository.GetByParent(parentId, query);
@@ -49,7 +59,7 @@ public class ParentChildService(
             ParentId = request.ParentId,
             Name = request.Name,
             Age = request.Age,
-            AvatarUrl = request.AvatarUrl,
+            AvatarUrl = ChildAvatars.Normalize(request.AvatarUrl),
             DisplayName = request.DisplayName,
             PinHash = BCrypt.Net.BCrypt.HashPassword(request.Pin, workFactor: 12),
             CurrentProgramId = program.Id
@@ -73,7 +83,7 @@ public class ParentChildService(
         var child = await childRepository.GetById(id) ?? throw new KeyNotFoundException("Child not found.");
         child.Name = request.Name;
         child.Age = request.Age;
-        child.AvatarUrl = request.AvatarUrl;
+        child.AvatarUrl = ChildAvatars.Normalize(request.AvatarUrl);
         child.DisplayName = request.DisplayName;
         if (request.LearningProgramTrack.HasValue)
         {
