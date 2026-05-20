@@ -1,4 +1,5 @@
 using LearningPlatform.Application;
+using LearningPlatform.Application.Services;
 using LearningPlatform.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -328,16 +329,24 @@ public class AuthRepository(AppDbContext db) : IAuthRepository
 {
     public Task AddRefreshToken(RefreshToken token) => db.RefreshTokens.AddAsync(token).AsTask();
 
-    public Task<RefreshToken?> FindValidRefreshToken(string rawToken)
+    public async Task<RefreshToken?> FindValidRefreshToken(string rawToken)
     {
-        var token = db.RefreshTokens.Where(x => !x.IsRevoked && x.ExpiresAt > DateTime.UtcNow).AsEnumerable().FirstOrDefault(x => BCrypt.Net.BCrypt.Verify(rawToken, x.TokenHash));
-        return Task.FromResult(token);
+        var lookup = RefreshTokenHash.ComputeLookup(rawToken);
+        var candidate = await db.RefreshTokens
+            .FirstOrDefaultAsync(x => !x.IsRevoked && x.ExpiresAt > DateTime.UtcNow && x.LookupHash == lookup);
+        if (candidate is null || !BCrypt.Net.BCrypt.Verify(rawToken, candidate.TokenHash))
+            return null;
+        return candidate;
     }
 
-    public Task<RefreshToken?> FindActiveRefreshToken(string rawToken)
+    public async Task<RefreshToken?> FindActiveRefreshToken(string rawToken)
     {
-        var token = db.RefreshTokens.Where(x => !x.IsRevoked).AsEnumerable().FirstOrDefault(x => BCrypt.Net.BCrypt.Verify(rawToken, x.TokenHash));
-        return Task.FromResult(token);
+        var lookup = RefreshTokenHash.ComputeLookup(rawToken);
+        var candidate = await db.RefreshTokens
+            .FirstOrDefaultAsync(x => !x.IsRevoked && x.LookupHash == lookup);
+        if (candidate is null || !BCrypt.Net.BCrypt.Verify(rawToken, candidate.TokenHash))
+            return null;
+        return candidate;
     }
 }
 

@@ -94,6 +94,7 @@ public class AuthService(
         await authRepository.AddRefreshToken(new RefreshToken
         {
             UserId = user.Id,
+            LookupHash = RefreshTokenHash.ComputeLookup(refresh),
             TokenHash = BCrypt.Net.BCrypt.HashPassword(refresh),
             ExpiresAt = DateTime.UtcNow.AddDays(7)
         });

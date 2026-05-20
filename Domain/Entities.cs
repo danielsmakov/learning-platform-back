@@ -188,6 +188,8 @@ public class RefreshToken
 {
     [Key] public Guid Id { get; set; } = Guid.NewGuid();
     public Guid UserId { get; set; }
+    /// <summary>SHA-256 hex of the raw refresh token for indexed lookup (BCrypt remains on TokenHash).</summary>
+    [MaxLength(64)] public string LookupHash { get; set; } = string.Empty;
     [MaxLength(255)] public string TokenHash { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
     public bool IsRevoked { get; set; }
