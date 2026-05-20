@@ -37,6 +37,14 @@ public static class AuthGuard
         if (!IsAdmin(user)) throw new AppForbiddenException("Admin role required.");
     }
 
+    /// <summary>На [AllowAnonymous] GET с черновиками: без JWT — 401 (клиент обновит сессию), без Admin — 403.</summary>
+    public static void RequireAdminAuthenticated(ClaimsPrincipal user)
+    {
+        if (user.Identity?.IsAuthenticated != true)
+            throw new AppUnauthorizedException("Authentication required.");
+        RequireAdmin(user);
+    }
+
     public static void RequireParentOrAdmin(ClaimsPrincipal user)
     {
         if (user.IsInRole("Parent") || user.IsInRole("Admin")) return;

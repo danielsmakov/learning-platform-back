@@ -44,6 +44,24 @@ public class AuthGuardTests
     }
 
     [Fact]
+    public void RequireAdminAuthenticated_throws_unauthorized_when_anonymous()
+    {
+        var user = new ClaimsPrincipal(new ClaimsIdentity());
+        Assert.Throws<AppUnauthorizedException>(() => AuthGuard.RequireAdminAuthenticated(user));
+    }
+
+    [Fact]
+    public void RequireAdminAuthenticated_throws_forbidden_for_parent()
+    {
+        var user = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(ClaimTypes.Role, "Parent")],
+            authenticationType: "Test",
+            nameType: ClaimTypes.Name,
+            roleType: ClaimTypes.Role));
+        Assert.Throws<AppForbiddenException>(() => AuthGuard.RequireAdminAuthenticated(user));
+    }
+
+    [Fact]
     public void RequireSelfOrAdmin_allows_admin_even_when_id_differs()
     {
         var user = new ClaimsPrincipal(new ClaimsIdentity(

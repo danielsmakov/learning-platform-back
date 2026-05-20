@@ -10,6 +10,15 @@ namespace LearningPlatform.Controllers;
 [Route("api/v1/parents")]
 public class ParentsController(ParentChildService service) : ControllerBase
 {
+    /// <summary>Только Admin: найти родителя по email (точное совпадение, без учёта регистра).</summary>
+    [Authorize(Roles = "Admin")]
+    [HttpGet("by-email")]
+    public async Task<IActionResult> GetParentByEmail([FromQuery] string email)
+    {
+        AuthGuard.RequireAdmin(User);
+        return Ok(await service.GetParentByEmail(email));
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetParent(Guid id)
     {

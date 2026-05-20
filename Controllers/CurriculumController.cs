@@ -19,7 +19,7 @@ public class CurriculumController(CurriculumService service, CatalogProgramResol
     public async Task<IActionResult> ListUnits([FromQuery] UnitQueryOptions query, [FromQuery] bool all = false,
         [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
     {
-        if (all) AuthGuard.RequireAdmin(User);
+        if (all) AuthGuard.RequireAdminAuthenticated(User);
         var programId = await catalogResolver.ResolveCatalogProgramIdAsync(User, query.ProgramId, query.ChildId);
         query.ProgramId = programId;
         return Ok(await service.GetUnits(query, includeUnpublished: all, acceptLanguage: acceptLanguage));
@@ -31,7 +31,7 @@ public class CurriculumController(CurriculumService service, CatalogProgramResol
     public async Task<IActionResult> GetUnit(Guid id, [FromQuery] Guid? programId, [FromQuery] Guid? childId, [FromQuery] bool all = false,
         [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
     {
-        if (all) AuthGuard.RequireAdmin(User);
+        if (all) AuthGuard.RequireAdminAuthenticated(User);
         var resolvedProgramId = await catalogResolver.ResolveCatalogProgramIdAsync(User, programId, childId);
         return Ok(await service.GetUnitCatalogCard(id, resolvedProgramId, includeUnpublished: all, acceptLanguage));
     }
@@ -67,8 +67,8 @@ public class CurriculumController(CurriculumService service, CatalogProgramResol
     public async Task<IActionResult> ListLessons([FromQuery] LessonQueryOptions query, [FromQuery] bool all = false,
         [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
     {
-        if (all) AuthGuard.RequireAdmin(User);
-        if (!string.IsNullOrWhiteSpace(query.Search)) AuthGuard.RequireAdmin(User);
+        if (all) AuthGuard.RequireAdminAuthenticated(User);
+        if (!string.IsNullOrWhiteSpace(query.Search)) AuthGuard.RequireAdminAuthenticated(User);
         var programId = await catalogResolver.ResolveCatalogProgramIdAsync(User, query.ProgramId, query.ChildId);
         query.ProgramId = programId;
         return Ok(await service.GetLessons(query, includeUnpublished: all, acceptLanguage: acceptLanguage));
@@ -80,7 +80,7 @@ public class CurriculumController(CurriculumService service, CatalogProgramResol
     public async Task<IActionResult> GetLesson(Guid id, [FromQuery] Guid? programId, [FromQuery] Guid? childId, [FromQuery] bool all = false,
         [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
     {
-        if (all) AuthGuard.RequireAdmin(User);
+        if (all) AuthGuard.RequireAdminAuthenticated(User);
         var resolvedProgramId = await catalogResolver.ResolveCatalogProgramIdAsync(User, programId, childId);
         return Ok(await service.GetLessonCatalogCard(id, resolvedProgramId, includeUnpublished: all, acceptLanguage));
     }
@@ -116,7 +116,7 @@ public class CurriculumController(CurriculumService service, CatalogProgramResol
     public async Task<IActionResult> ListExercises(Guid id, [FromQuery] QueryOptions query, [FromQuery] Guid? programId, [FromQuery] Guid? childId, [FromQuery] bool all = false,
         [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
     {
-        if (all) AuthGuard.RequireAdmin(User);
+        if (all) AuthGuard.RequireAdminAuthenticated(User);
         var resolved = await catalogResolver.ResolveCatalogProgramIdAsync(User, programId, childId);
         await service.EnsureLessonBelongsToProgram(id, resolved);
         await service.EnsureLessonPublishedForCatalog(id, includeUnpublished: all);

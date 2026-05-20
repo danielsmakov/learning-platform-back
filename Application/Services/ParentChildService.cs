@@ -16,6 +16,19 @@ public class ParentChildService(
 {
     public async Task<User> GetParent(Guid id) => await userRepository.GetById(id) ?? throw new KeyNotFoundException("Parent not found.");
 
+    public async Task<User> GetParentByEmail(string email)
+    {
+        var normalized = email.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(normalized))
+            throw new KeyNotFoundException("Parent not found.");
+
+        var user = await userRepository.GetByEmail(normalized);
+        if (user is null || user.Role != UserRole.Parent)
+            throw new KeyNotFoundException("Parent not found.");
+
+        return user;
+    }
+
     public async Task<User> UpdateParent(Guid id, UpdateParentRequest request)
     {
         var parent = await userRepository.GetById(id) ?? throw new KeyNotFoundException("Parent not found.");

@@ -17,7 +17,7 @@ public class ProgramsController(CurriculumService curriculum) : ControllerBase
         [FromHeader(Name = "Accept-Language")] string? acceptLanguage = null)
     {
         if (all)
-            AuthGuard.RequireAdmin(User);
+            AuthGuard.RequireAdminAuthenticated(User);
         return Ok(await curriculum.GetPrograms(query, includeUnpublished: all, acceptLanguage: acceptLanguage));
     }
 
