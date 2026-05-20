@@ -45,6 +45,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Notification>().HasIndex(x => new { x.ParentId, x.IsRead });
         modelBuilder.Entity<ActivityLog>().HasIndex(x => x.CreatedAt);
         modelBuilder.Entity<RefreshToken>().HasIndex(x => x.UserId);
+        modelBuilder.Entity<RefreshToken>().HasIndex(x => x.LookupHash);
         modelBuilder.Entity<Badge>().HasIndex(x => x.Key).IsUnique();
         modelBuilder.Entity<ContentTranslation>().HasIndex(x => new { x.EntityType, x.EntityId, x.FieldName, x.Locale }).IsUnique();
     }
